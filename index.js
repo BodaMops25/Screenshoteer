@@ -3,7 +3,9 @@ const screenshot = require('screenshot-desktop'),
       displayId = '\\\\.\\DISPLAY1',
       ledAm = 292,
       esp32Ip = '192.168.1.15',
-      portComponentId = 'txt_led_sequence'
+      portComponentId = 'txt_led_sequence',
+      displaySamples_x = 3,
+      displaySamples_y = 2
 
 const CONSTANT_BRIGHTNESS = false,
       LOGS = false
@@ -67,10 +69,9 @@ function setLeds() {
         .ensureAlpha()
         .toBuffer({ resolveWithObject: true })
         .then(({ data, info }) => {
-          const { width, height, channels } = info,
-                rgbImg = [],
-                rgbPreFinalImg = [],
-                rgbFinalImg = []
+          const { width, height, channels } = info
+
+
 
           for (let i = 0; i < data.length; i += channels) {
 
