@@ -1,16 +1,13 @@
 const screenshot = require('screenshot-desktop'),
       sharp = require('sharp'),
       displayId = '\\\\.\\DISPLAY1',
-      ledAm = 292,
       esp32Ip = '192.168.1.15',
       portComponentId = 'txt_led_sequence',
-      // displaySamples_x = 292,
-      // displaySamples_y = 10
-      displaySamples_x = 0,
-      displaySamples_y = 0
+      displaySamples_x = 292,
+      displaySamples_y = 50
 
-const CONSTANT_BRIGHTNESS = false,
-      LOGS = false
+const LOGS = false,
+      FETCH_INTERVAL_MS = 100
 
 function blendColors(colorArray) {
   const [r, g, b] = colorArray.reduce(([sum_r, sum_g, sum_b], [r, g, b]) => {
@@ -66,8 +63,6 @@ function getPixelFromSeq(width, dataSeq, channels, x, y) {
   ]
 }
 
-const start = +new Date()
-
 function setLeds() {
 
   return new Promise((res, rej) => {
@@ -94,75 +89,39 @@ function setLeds() {
                     pixel = getPixelFromSeq(width, data, channels, x, y)
 
               tmp_arr.push(rgb2hsv(...pixel))
-              // tmp_arr.push(pixel)
             }
 
-            ledSeq2Send.push(blendColors(tmp_arr))
+            ledSeq2Send.push(blendColors(tmp_arr).join(','))
           }
 
-          // console.log(ledSeq2Send)
-          console.log(new Date() - start)
-
-
-          // for (let i = 0; i < data.length; i += channels) {
-
-          //   const r = data[i]
-          //   const g = data[i + 1]
-          //   const b = data[i + 2]
-
-          //   const y = Math.floor(i / (width * channels))
-          //   if(rgbImg[y] === undefined) rgbImg[y] = []
-
-          //   rgbImg[y].push([r, g, b])
-          // }
-
-          // for(let x = 0; x < width; x++) {
-
-          //   const column = rgbImg.reduce((arr, row) => {
-          //                     arr.push(row[x])
-          //                     return arr
-          //                   }, [])
-
-          //   rgbPreFinalImg.push(blendColors(column))
-          // }
-
-          // const k = Math.floor(width / ledAm)
-
-          // for(let i = 0; i < ledAm; i++) {
-          //   const tmp_arr = [];
-          //   for(let j = i * k; j < (i + 1) * k; j++) {
-          //     tmp_arr.push(rgbPreFinalImg[j])
-          //   }
-
-          //   rgbFinalImg[i] = blendColors(tmp_arr)
-          // }
-
-          // const led_seq_data = rgbFinalImg.map(rgb => rgb2hsv(...rgb).join(',')).join(';')
-
-          // fetch('http://' + esp32Ip + '/GP_click?' + portComponentId + '=' + led_seq_data, {method: 'POST'})
-          //   .then(() => {
-          //     if(LOGS) console.log('LED Seq Sended')
-          //     res(led_seq_data)
-          //   })
-          //   .catch(err => {
-          //     if(LOGS) console.warn('Error while sending LED seq')
-          //     rej(err)
-          //   })
-
-          // console.log(new Date() - start)
-          // start = +new Date()
+          fetch('http://' + esp32Ip + '/GP_click?' + portComponentId + '=' + ledSeq2Send.join(';'), {method: 'POST'})
+            .then(() => res(ledSeq2Send))
+            .catch(err => {
+              if(LOGS) console.warn('Error while sending LED seq')
+              rej(err)
+            })
         })
     })
   })
 }
 
-setLeds()
+let fetchAllowed = true,
+    start = +new Date()
 
-// function foo() {
-//   setLeds()
-//     .catch(err => {
-//       if(LOGS) console.log('Error catched!')
-//     })
-//     .finally(foo)
-// }
-// foo()
+setInterval(() => {
+  if(fetchAllowed) {
+    fetchAllowed = false
+    setLeds()
+      .then(() => {
+        if(LOGS) console.log('LED Seq Sended')
+      })
+      .catch(()=>{})
+      .finally(() => {
+        fetchAllowed = true
+        if(LOGS) {
+          console.log(new Date() - start)
+          start = new Date()
+        }
+      })
+  }
+}, FETCH_INTERVAL_MS)
