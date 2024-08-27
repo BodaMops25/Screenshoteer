@@ -50,7 +50,7 @@ function rgb2hsv(r, g, b) {
   return [
     Math.round(h * 255),
     Math.round(s * 255),
-    CONSTANT_BRIGHTNESS ? 255 : Math.round(v * 255)
+    Math.round(v * 255)
   ]
 }
 
