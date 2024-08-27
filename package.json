@@ -9,6 +9,7 @@
   "author": "BodaMops25",
   "license": "ISC",
   "dependencies": {
+    "node-screenshots": "^0.2.1",
     "screenshot-desktop": "^1.15.0",
     "sharp": "^0.33.5"
   }
