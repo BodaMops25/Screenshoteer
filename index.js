@@ -10,13 +10,13 @@ const DEFINES = {
   channels: 4,
   displaySamples_x: 292,
   displaySamples_y: 100,
-  framerate: 10,
+  framerate: 1,
 
   LOGS: true
 }
 DEFINES.imgSize = DEFINES.display_width * DEFINES.display_height * DEFINES.channels
 
-const ffmpeg_process = spawn('ffmpeg', ["-framerate", DEFINES.framerate, "-f", "x11grab", "-i", ":0", "-f", "rawvideo", "-pix_fmt", "rgba", "-"], {stdio: 'pipe'})
+const ffmpeg_process = spawn('ffmpeg', ["-framerate", DEFINES.framerate, "-f", "gdigrab", "-i", "desktop", "-f", "rawvideo", "-pix_fmt", "rgba", "-"], {stdio: 'pipe'})
 
 let imgBuffs = [],
     dataLength = 0,
@@ -50,6 +50,8 @@ ffmpeg_process.stdout.on('data', (chunck) => {
 
     if(fetchAllowed) {
       fetchAllowed = false
+
+      console.log(ledSeq2Send[0])
 
       fetch('http://' + DEFINES.esp32Ip + '/GP_click?' + DEFINES.portComponentId + '=' + ledSeq2Send.join(';'), {method: 'POST'})
         .then(() => {
