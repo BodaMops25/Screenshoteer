@@ -12,7 +12,7 @@ const DEFINES = {
   displaySamples_y: 100,
   framerate: 10,
 
-  LOGS: false
+  LOGS: true
 }
 DEFINES.imgSize = DEFINES.display_width * DEFINES.display_height * DEFINES.channels
 
