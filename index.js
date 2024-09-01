@@ -7,7 +7,8 @@ const screenshot = require('screenshot-desktop'),
       displaySamples_y = 50
 
 const LOGS = false,
-      FETCH_INTERVAL_MS = 100
+      FETCH_INTERVAL_MS = 100,
+      minBrightness = 0
 
 function blendColors(colorArray) {
   const [r, g, b] = colorArray.reduce(([sum_r, sum_g, sum_b], [r, g, b]) => {
@@ -47,11 +48,11 @@ function rgb2hsv(r, g, b) {
     h /= 6
   }
 
-  return [
-    Math.round(h * 255),
-    Math.round(s * 255),
-    Math.round(v * 255)
-  ]
+  h = Math.round(h * 255)
+  s = Math.round(s * 255)
+  v = Math.round(v * 255)
+
+  return [h, s, minBrightness < v ? v : minBrightness]
 }
 
 function getPixelFromSeq(width, dataSeq, channels, x, y) {
@@ -112,8 +113,9 @@ setInterval(() => {
   if(fetchAllowed) {
     fetchAllowed = false
     setLeds()
-      .then(() => {
+      .then(data => {
         if(LOGS) console.log('LED Seq Sended')
+        // console.log(data)
       })
       .catch(()=>{})
       .finally(() => {
