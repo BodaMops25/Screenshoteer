@@ -9,8 +9,8 @@ const DEFINES = {
   display_height: 768,
   channels: 4,
   displaySamples_x: 292,
-  displaySamples_y: 100,
-  framerate: 10,
+  displaySamples_y: 200,
+  framerate: 30,
 
   LOGS: true
 }
