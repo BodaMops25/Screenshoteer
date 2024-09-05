@@ -1,6 +1,6 @@
 {
   "name": "screenshoteer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Program to conver desctop screen to addressable LED strip on ESP32 & GyverPortal",
   "type": "module",
   "main": "index.js",
