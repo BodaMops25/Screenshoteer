@@ -1,10 +1,10 @@
 const screenshot = require('screenshot-desktop'),
       sharp = require('sharp'),
-      displayId = '\\\\.\\DISPLAY1',
-      esp32Ip = '192.168.1.15',
+      displayId = '\\\\.\\DISPLAY2',
+      esp32Ip = '192.168.1.5',
       portComponentId = 'txt_led_sequence',
       displaySamples_x = 292,
-      displaySamples_y = 50
+      displaySamples_y = 900
 
 const LOGS = false,
       FETCH_INTERVAL_MS = 100,
@@ -117,7 +117,7 @@ setInterval(() => {
         if(LOGS) console.log('LED Seq Sended')
         // console.log(data)
       })
-      .catch(()=>{})
+      .catch(() => {})
       .finally(() => {
         fetchAllowed = true
         if(LOGS) {
