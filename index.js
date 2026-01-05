@@ -8,15 +8,15 @@ const DEFINES = {
   display_width: 2560,
   display_height: 1440,
   channels: 4,
-  displaySamples_x: 292,
-  displaySamples_y: 720,
-  framerate: 10,
+  // displaySamples_x: 292,
+  // displaySamples_y: 720,
+  framerate: 60,
 
-  LOGS: false
+  LOGS: true
 }
 DEFINES.imgSize = DEFINES.display_width * DEFINES.display_height * DEFINES.channels
 
-const ffmpeg_process = spawn('ffmpeg', ["-s", "2560x1440", "-framerate", DEFINES.framerate, "-f", "gdigrab", "-i", "desktop", '-preset', 'fast', "-f", "rawvideo", "-pix_fmt", "rgba", "-"], {stdio: 'pipe'})
+const ffmpeg_process = spawn('ffmpeg', ["-framerate", DEFINES.framerate, "-f", "gdigrab", "-i", "desktop", '-vf', `scale=${DEFINES.display_width}:${DEFINES.display_height}`, '-preset', 'fast', "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], {stdio: 'pipe'})
 let imgBuffs = [],
     dataLength = 0,
     fetchAllowed = true,
@@ -29,11 +29,11 @@ ffmpeg_process.stdout.on('data', (chunck) => {
 
   if(dataLength >= DEFINES.imgSize) {
     const data = Buffer.concat(imgBuffs),
-          step_y = Math.floor(DEFINES.display_height / (DEFINES.displaySamples_y + 1)),
-          step_x = Math.floor(DEFINES.display_width / (DEFINES.displaySamples_x + 1)),
+          // step_y = Math.floor(DEFINES.display_height / (DEFINES.displaySamples_y + 1)),
+          // step_x = Math.floor(DEFINES.display_width / (DEFINES.displaySamples_x + 1)),
           ledSeq2Send = []
 
-    for(let j = 1; j <= DEFINES.displaySamples_x; j++) {
+    /* for(let j = 1; j <= DEFINES.displaySamples_x; j++) {
       const x = j * step_x,
             tmp_arr = []
       
@@ -45,14 +45,16 @@ ffmpeg_process.stdout.on('data', (chunck) => {
       }
 
       ledSeq2Send.push(blendColors(tmp_arr).join(','))
-    }
+    } */
+
+    
 
     if(fetchAllowed) {
       fetchAllowed = false
 
       // console.log('-------------------------------------------------', ledSeq2Send[0].split(',')[2])
 
-      fetch('http://' + DEFINES.esp32Ip + '/GP_click?' + DEFINES.portComponentId + '=' + ledSeq2Send.join(';'), {method: 'POST'})
+      /* fetch('http://' + DEFINES.esp32Ip + '/GP_click?' + DEFINES.portComponentId + '=' + ledSeq2Send.join(';'), {method: 'POST'})
         .then(() => {
           if(DEFINES.LOGS) console.log("LED Seq Sended")
         })
@@ -66,8 +68,12 @@ ffmpeg_process.stdout.on('data', (chunck) => {
             console.log(new Date() - start)
             start = +new Date()
           }
-        })
-    }
+        }) */
+      }
+      if(DEFINES.LOGS) {
+        console.log(new Date() - start)
+        start = +new Date()
+      }
 
     imgBuffs = []
     dataLength = 0
