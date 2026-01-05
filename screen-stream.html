@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    button {
+      position: absolute;
+    }
+  </style>
+</head>
+<body>
+  <button id="start">Start Capture</button>
+  <canvas id="c"></canvas>
+
+  <script>
+    const btn = document.getElementById("start");
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = innerWidth
+    canvas.height = innerHeight
+
+    btn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: 60 }
+      });
+
+      const video = document.createElement("video");
+      video.srcObject = stream;
+      await video.play();
+
+      function loop() {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        requestAnimationFrame(loop);
+      }
+      loop();
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #000;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <canvas></canvas>
+
+  <script type="module">
+    const ws = new WebSocket('ws://192.168.1.2:8080')
+
+    import {hsv2rgb} from './utilites.js'
+
+    const PIXEL_NUM = 292
+    const PIXEL_GAP = 0
+
+    const cnvs = document.querySelector('canvas')
+    const ctx = cnvs.getContext('2d')
+
+    cnvs.width = innerWidth
+    cnvs.height = innerHeight
+
+    const cw = cnvs.width
+    const ch = cnvs.height
+
+    const p_cont_size = cw / PIXEL_NUM
+    const p_size = p_cont_size - PIXEL_GAP * 2
+
+    function drawPixel(index = 0, color = '#fff') {
+      const horizon = ch / 2
+
+      ctx.shadowColor = color
+      ctx.fillStyle = color
+      ctx.fillRect(p_cont_size * index + PIXEL_GAP , horizon - p_size / 2, p_size, p_size)
+
+      // ctx.shadowBlur = 32
+      // ctx.fillRect(p_cont_size * index + PIXEL_GAP , horizon - p_size / 2, p_size, p_size)
+
+      // ctx.shadowBlur = 64
+      // ctx.fillRect(p_cont_size * index + PIXEL_GAP , horizon - p_size / 2, p_size, p_size)
+    }
+
+    ws.onmessage = (event) => {
+      // alert(event.data)
+      try {
+        //event.data = '0,255,255;15,255,255;...;'
+        // const leds = JSON.parse(event.data)
+        const leds = event.data.split(';').map(ledStr => ledStr.split(','))
+
+        for(let i = 0; i < PIXEL_NUM; i++) {
+          // const led = leds[i] // like "12,15,63"
+          const led = leds[i].map(value => +value)
+
+          drawPixel(i, 'rgb(' + hsv2rgb(led).join(',') + ')')
+        }
+      } catch(err) {}
+    }
+
+    // let iterator = 0
+    // setInterval(() => {
+    //   ctx.clearRect(0, 0, cw, ch)
+    //   for(let i = 0; i < PIXEL_NUM; i++) drawPixel(i, 'rgb(' + hsv2rgb(i + iterator, 255, 255).join(',') + ')')
+
+    //   iterator += 1
+    // }, 8)
+  </script>
+</body>
+</html>

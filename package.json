@@ -3,14 +3,17 @@
   "version": "1.0.0",
   "description": "Program to conver desctop screen to addressable LED strip on ESP32 & GyverPortal",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js",
+    "start": "node server.js",
     "monitors": "node getMonitors.js"
   },
   "author": "BodaMops25",
   "license": "ISC",
   "dependencies": {
+    "express": "^5.2.1",
     "screenshot-desktop": "^1.15.0",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "ws": "^8.18.3"
   }
 }

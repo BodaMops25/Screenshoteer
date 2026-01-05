@@ -1,59 +1,15 @@
-const screenshot = require('screenshot-desktop'),
-      sharp = require('sharp'),
-      displayId = '\\\\.\\DISPLAY2',
-      esp32Ip = '192.168.1.5',
+import {rgb2hsv, blendColors} from './utilites.js'
+import screenshot from 'screenshot-desktop'
+import sharp from 'sharp'
+
+const displayId = '\\\\.\\DISPLAY1',
+      esp32Ip = '192.168.1.20',
       portComponentId = 'txt_led_sequence',
       displaySamples_x = 292,
       displaySamples_y = 900
 
 const LOGS = false,
-      FETCH_INTERVAL_MS = 100,
-      minBrightness = 0
-
-function blendColors(colorArray) {
-  const [r, g, b] = colorArray.reduce(([sum_r, sum_g, sum_b], [r, g, b]) => {
-                      return [sum_r + r, sum_g + g, sum_b + b]
-                    }, [0, 0, 0])
-
-  return [Math.round(r / colorArray.length), Math.round(g / colorArray.length), Math.round(b / colorArray.length)]
-}
-
-function rgb2hsv(r, g, b) {
-
-  r /= 255
-  g /= 255
-  b /= 255
-
-  const max = Math.max(r, g, b),
-        min = Math.min(r, g, b),
-        d = max - min
-
-  let h = 0, s = 0, v = max;
-  s = max === 0 ? 0 : d / max
-
-  if(max === min) h = 0
-  else {
-    switch(max) {
-      case r:
-          h = (g - b) / d + (g < b ? 6 : 0)
-          break
-      case g:
-          h = (b - r) / d + 2
-          break
-      case b:
-          h = (r - g) / d + 4
-          break
-    }
-
-    h /= 6
-  }
-
-  h = Math.round(h * 255)
-  s = Math.round(s * 255)
-  v = Math.round(v * 255)
-
-  return [h, s, minBrightness < v ? v : minBrightness]
-}
+      FETCH_INTERVAL_MS = 100
 
 function getPixelFromSeq(width, dataSeq, channels, x, y) {
   const dataIndex = y * width * channels + x * channels
