@@ -41,10 +41,10 @@ setInterval(() => {
       // leds_str +=  (i + indx) % 255 + ',255,255;'
       // leds_str += '150,255,255;'
 
-      // if(i === indx % led_am) leds_str += '0,255,255;'
-      // else leds_str += '0,0,0;'
+      if(i === indx % led_am) leds_str += '0,255,255;'
+      else leds_str += '0,0,0;'
 
-      leds_str += `0,255,255;`
+      // leds_str += `150,255,255;`
     }
 
     wsClient.send(leds_str)
@@ -54,4 +54,4 @@ setInterval(() => {
   console.log(new Date() - dt)
   dt = +new Date()
 // }, 100)
-}, 16)
+}, 32)

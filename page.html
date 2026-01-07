@@ -61,12 +61,23 @@
       // ctx.fillRect(p_cont_size * index + PIXEL_GAP , horizon - p_size / 2, p_size, p_size)
     }
 
-    ws.onmessage = (event) => {
-      // alert(event.data)
+    ws.onmessage = async (event) => {
       try {
         //event.data = '0,255,255;15,255,255;...;'
         // const leds = JSON.parse(event.data)
-        const leds = event.data.split(';').map(ledStr => ledStr.split(','))
+        // const leds = event.data.split(';').map(ledStr => ledStr.split(','))
+        const buffer = await event.data.arrayBuffer()
+        const data_array = Array.from(new Uint8Array(buffer))
+
+        const leds = []
+
+        for(let i = 0; i < data_array.length; i += 3) {
+          leds.push([
+            data_array[i],
+            data_array[i+1],
+            data_array[i+2]
+          ])
+        }
 
         for(let i = 0; i < PIXEL_NUM; i++) {
           // const led = leds[i] // like "12,15,63"

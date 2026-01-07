@@ -2,6 +2,24 @@ export function clamp(value, min, max) {
   return value < min ? min : value > max ? 255 : value
 }
 
+export function changeOnePixelInSeq(pixels_seq, pixel_num, callback) {
+  const new_pixel = callback([
+    pixels_seq[pixel_num*3],
+    pixels_seq[pixel_num*3+1],
+    pixels_seq[pixel_num*3+2]
+  ])
+
+  pixels_seq[pixel_num*3] = new_pixel[0]
+  pixels_seq[pixel_num*3+1] = new_pixel[1]
+  pixels_seq[pixel_num*3+2] = new_pixel[2]
+}
+
+export function changeManyPixelsInSeq(pixels_seq, callback) {
+  for(let i = 0; i < pixels_seq.length / 3; i++) {
+    changeOnePixelInSeq(pixels_seq, i, callback)
+  }
+}
+
 export function rgb2hsv([r, g, b]) {
 
   r /= 255
