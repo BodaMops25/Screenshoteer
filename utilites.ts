@@ -1,8 +1,10 @@
-export function clamp(value, min, max) {
+export type RGB = [number, number, number]
+
+export function clamp(value: number, min: number, max: number) {
   return value < min ? min : value > max ? 255 : value
 }
 
-export function changeOnePixelInSeq(pixels_seq, pixel_num, callback) {
+export function changeOnePixelInSeq(pixels_seq: number[] | Buffer<ArrayBufferLike>, pixel_num: number, callback: (pixel: RGB) => RGB) {
   const new_pixel = callback([
     pixels_seq[pixel_num*3],
     pixels_seq[pixel_num*3+1],
@@ -14,13 +16,13 @@ export function changeOnePixelInSeq(pixels_seq, pixel_num, callback) {
   pixels_seq[pixel_num*3+2] = new_pixel[2]
 }
 
-export function changeManyPixelsInSeq(pixels_seq, callback) {
+export function changeManyPixelsInSeq(pixels_seq: number[] | Buffer<ArrayBufferLike>, callback: (pixel: RGB) => RGB) {
   for(let i = 0; i < pixels_seq.length / 3; i++) {
     changeOnePixelInSeq(pixels_seq, i, callback)
   }
 }
 
-export function rgb2hsv([r, g, b]) {
+export function rgb2hsv([r, g, b]: RGB) {
 
   r /= 255
   g /= 255
@@ -57,12 +59,12 @@ export function rgb2hsv([r, g, b]) {
   return [h, s, 0 < v ? v : 0]
 }
 
-export function hsv2rgb([h, s, v]) {
+export function hsv2rgb([h, s, v]: RGB) {
     h = h / 255
     s = s / 255
     v = v / 255
 
-    let r, g, b;
+    let r = 0, g = 0, b = 0;
 
     let i = Math.floor(h * 6);
     let f = h * 6 - i;
@@ -86,8 +88,8 @@ export function hsv2rgb([h, s, v]) {
     ]
 }
 
-export function rgbGammaCorrection([r, g, b], gamma = 2.2) {
-  const correctionFunc = v => Math.round(Math.pow(v / 255, 1 / gamma) * 255)
+export function rgbGammaCorrection([r, g, b]: RGB, gamma = 2.2) {
+  const correctionFunc = (v: number) => Math.round(Math.pow(v / 255, 1 / gamma) * 255)
 
   return [
     correctionFunc(r),
@@ -96,16 +98,16 @@ export function rgbGammaCorrection([r, g, b], gamma = 2.2) {
   ]
 }
 
-export function rgbBrightnessCorrection(pixel, brightness = 1) {
+export function rgbBrightnessCorrection(pixel: RGB, brightness = 1) {
   pixel[0] = clamp(Math.round(pixel[0] * brightness), 0, 255)
   pixel[1] = clamp(Math.round(pixel[1] * brightness), 0, 255)
   pixel[2] = clamp(Math.round(pixel[2] * brightness), 0, 255)
 }
 
-export function rgbContrastCorrection(pixel, contrast = 1) {
+export function rgbContrastCorrection(pixel: RGB, contrast = 1) {
   const midpoint = 128
 
-  const correctionFunc = v => {
+  const correctionFunc = (v: number) => {
     const c = (v - midpoint) * contrast + midpoint
     return Math.max(0, Math.min(255, Math.round(c)))
   }
@@ -115,12 +117,12 @@ export function rgbContrastCorrection(pixel, contrast = 1) {
   pixel[2] = correctionFunc(pixel[2])
 }
 
-export function rgbLuminance([r, g, b]) {
+export function rgbLuminance([r, g, b]: RGB) {
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; 
 }
 
 // [[r,g,b],[r,g,b]]
-export function rgbBlendAvarage(pixelsArray) {
+export function rgbBlendAvarage(pixelsArray: RGB[]) {
   
   const [r, g, b] = pixelsArray.reduce(([sum_r, sum_g, sum_b], [r, g, b]) => {
     return [sum_r + r, sum_g + g, sum_b + b]
@@ -129,7 +131,7 @@ export function rgbBlendAvarage(pixelsArray) {
   return [Math.round(r / pixelsArray.length), Math.round(g / pixelsArray.length), Math.round(b / pixelsArray.length)]
 }
 
-export function rgbBlendAvarageLessDarker(pixelsArray) {
+export function rgbBlendAvarageLessDarker(pixelsArray: RGB[]) {
   
   const [rSum, gSum, bSum, wSum] = pixelsArray.reduce(([sum_r, sum_g, sum_b, weights], pixel) => {
     const weight = rgbLuminance(pixel)
@@ -151,7 +153,7 @@ export function rgbBlendAvarageLessDarker(pixelsArray) {
   ]
 }
 
-export function rgbBlendAvarageLessDarkerLighter(pixelsArray, impact = 2) {
+export function rgbBlendAvarageLessDarkerLighter(pixelsArray: RGB[], impact = 2) {
   
   const [rSum, gSum, bSum, wSum] = pixelsArray.reduce(([sum_r, sum_g, sum_b, weights], pixel) => {
     const l = rgbLuminance(pixel)
@@ -175,7 +177,7 @@ export function rgbBlendAvarageLessDarkerLighter(pixelsArray, impact = 2) {
   ]
 }
 
-export function rgbBlendAdditive(pixelsArray) {
+export function rgbBlendAdditive(pixelsArray: RGB[]) {
   const [r, g, b] = pixelsArray.reduce(([sum_r, sum_g, sum_b], [r, g, b]) => {
     return [sum_r + r, sum_g + g, sum_b + b]
   }, [0, 0, 0])
@@ -183,7 +185,7 @@ export function rgbBlendAdditive(pixelsArray) {
   return [Math.round(r < 255 ? r : 255), Math.round(g < 255 ? g : 255), Math.round(b < 255 ? b : 255)]
 }
 
-export function rgbBlendMultiplicative(pixelsArray) {
+export function rgbBlendMultiplicative(pixelsArray: RGB[]) {
   const [r, g, b] = pixelsArray.reduce(([sum_r, sum_g, sum_b], [r, g, b]) => {
     return [sum_r * r, sum_g * g, sum_b * b]
   }, [1, 1, 1])
@@ -191,8 +193,8 @@ export function rgbBlendMultiplicative(pixelsArray) {
   return [Math.round(r / pixelsArray.length), Math.round(g / pixelsArray.length), Math.round(b / pixelsArray.length)]
 }
 
-export function rgbBlur(pixels) {
-  const pixelBluring = (index) => {
+export function rgbBlur(pixels: RGB[]) {
+  const pixelBluring = (index: number) => {
     pixels[index][0] = Math.round((pixels[index][0] * 2 + pixels[index-1][0] + pixels[index+1][0]) / 4)
     pixels[index][1] = Math.round((pixels[index][1] * 2 + pixels[index-1][1] + pixels[index+1][1]) / 4)
     pixels[index][2] = Math.round((pixels[index][2] * 2 + pixels[index-1][2] + pixels[index+1][2]) / 4)
