@@ -11,7 +11,7 @@ const avarageArr: number[] = []
 let avarageArrIndex = 0
 let timemark = +new Date()
 
-const targetHost = '192.168.1.15';
+const targetHost = '192.168.1.18';
 const targetPort = 4048;
 const socket = new WLEDDdp(targetHost, targetPort);
 
