@@ -70,6 +70,7 @@ export class WLEDDdp {
     private readonly VERSION = 0x01; // Version 1, PUSH flag not set, other flags are 0
     private readonly DATA_TYPE = 0x01; // Data type RGB
     private readonly OUTPUT_ID = 0x01; // Default ID for output device
+    private readonly MAX_LED_DATA_PER_PACKET = 1440
 
     constructor(host: string, port: number) {
         this._port = port;
@@ -98,9 +99,16 @@ export class WLEDDdp {
         return this.jsonClient.info
     }
 
-    public sendRaw(data: Buffer) {
-        const packet = this.createPacket(data);
-        this.sendPacket(packet);
+    public sendRaw(data: Buffer, offset = 0) {
+        let chunk_offset = 0
+        do {
+            const packet = this.createPacket(
+                data.subarray(chunk_offset, chunk_offset + this.MAX_LED_DATA_PER_PACKET),
+                chunk_offset + offset
+            );
+            this.sendPacket(packet);
+            chunk_offset += this.MAX_LED_DATA_PER_PACKET
+        } while(chunk_offset < data.length)
     }
 
     public send(data: RGB[]) {
@@ -116,14 +124,34 @@ export class WLEDDdp {
         return new Array(this.jsonClient.info.leds.count || 240).fill(initialFill ?? [0,0,0]);
     }
 
-    private createPacket(leds: RGB[] | Buffer): Buffer {
+    private createPacket(leds: RGB[] | Buffer, offset: number = 0): Buffer {
+        const data_length = leds.length
         const header = Buffer.alloc(10); // DDP header is 10 bytes
-        header[0] = this.VERSION;
-        header[1] = 0x00; // Reserved for future use, set to 0.
-        header[2] = this.DATA_TYPE;
-        header[3] = this.OUTPUT_ID;
-        header.writeUInt32BE(0, 4); // Offset set to 0
-        header.writeUInt16BE(leds.length * 3, 8); // Data length
+        // header[0] = this.VERSION;
+        // header[1] = 0x00; // Reserved for future use, set to 0.
+        // header[2] = this.DATA_TYPE;
+        // header[3] = this.OUTPUT_ID;
+        // header[4] = 0x01;
+        // header[5] = 0x00;
+        // header.writeUInt32BE(0, 4); // Offset set to 0
+        // // header.writeUInt16BE(714*3, 6); 
+        // // header.writeUInt16BE(leds.length * 3, 8); // Data length
+        // header.writeUInt16BE(leds.length / 3, 8); // Data length
+
+        header[0] = 0b01000000
+        header[1] = 0b00000000
+        header[2] = 0b00000000
+     // header[2] = 0b00001000 // rgb
+     // header[2] = 0b00011000 // rgbw
+        header[3] = 0b00000001
+
+        // header[4] = 0b00000000
+        // header[5] = 0b00000000
+        // header[6] = 0b00000000
+        // header[7] = 0b00000000
+        
+        header.writeUInt32BE(offset, 4)
+        header.writeUInt16BE(data_length, 8)
 
         if(Array.isArray(leds)) {
             const data = Buffer.concat(leds.map(color => {
@@ -137,6 +165,10 @@ export class WLEDDdp {
     }
 
     private sendPacket(packet: Buffer) {
+        if(packet.length > 1500) {
+            console.error('Packet limit exceeded')
+            return
+        }
         this._socket.send(
             packet,
             this._port,
