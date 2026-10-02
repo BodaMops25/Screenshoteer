@@ -1,3 +1,4 @@
+import { WebSocket } from 'ws';
 import { createLEDSeqFlow, WLEDDdp } from './server-utilites.ts';
 import { changeManyPixelsInSeq, rgbBrightnessCorrection, audioToBrightness } from './utilites.ts';
 import loopbackCapture from 'loopback-capture';
@@ -7,8 +8,6 @@ if (process.platform !== 'win32') {
   throw new Error('This collector currently supports Windows only');
 }
 
-// LEDS EXTRACTION
-
 const DEBUG_MDDE = true,
   AVARAGE_ARR_MAX = 100,
   DEBUG_LOGS_INTERVAL = 10
@@ -16,10 +15,21 @@ const DEBUG_MDDE = true,
 const avarageArr: number[] = []
 let avarageArrIndex = 0
 let timemark = +new Date()
-let audioLevelRaw = 0
+let audioLevelRaw = 1
 
 const targetHost = '192.168.1.18';
 const targetPort = 4048;
+
+let wss, simulation_client
+
+if (DEBUG_MDDE) {
+  wss = new WebSocket.Server({ port: 8080 })
+  wss.on('connection', (client) => {
+    simulation_client = client
+    console.log('simulation client changed')
+  })
+}
+
 const socket = new WLEDDdp(targetHost, targetPort);
 
 const capture = new LoopbackCapture();
@@ -39,14 +49,23 @@ capture.startSystemAudio((chunk) => {
 });
 
 (async () => {
-  await socket.initLeds()
+
+  /* try {
+    await socket.initLeds()
+  }
+  catch (err) {
+    throw new Error('WLED device not found')
+  }
+
   const selectedSegment = socket.jsonClient.state.segments.find(s => s.selected)
   if (!selectedSegment) {
     console.error('Not selected WLED strip segment')
     return
   }
   const ledsOffset = selectedSegment.start
-  const ledsCount = selectedSegment.length
+  const ledsCount = selectedSegment.length */
+
+  const ledsCount = 300
 
   createLEDSeqFlow({
     framerate: 60,
@@ -67,11 +86,11 @@ capture.startSystemAudio((chunk) => {
         return pixel
       })
 
-      socket.sendRaw(color_seq, ledsOffset * 3)
+      // socket.sendRaw(color_seq, ledsOffset * 3)
 
       if (DEBUG_MDDE) {
 
-
+        if (simulation_client) simulation_client.send(color_seq)
 
         avarageArr[avarageArrIndex++] = +new Date() - timemark
         timemark = +new Date()
