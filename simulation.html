@@ -28,102 +28,53 @@
   <canvas></canvas>
 
   <script>
-    function hsv2rgb([h, s, v]) {
-      h = h / 255
-      s = s / 255
-      v = v / 255
-
-      let r = 0, g = 0, b = 0;
-
-      let i = Math.floor(h * 6);
-      let f = h * 6 - i;
-      let p = v * (1 - s);
-      let q = v * (1 - f * s);
-      let t = v * (1 - (1 - f) * s);
-
-      switch (i % 6) {
-        case 0: r = v; g = t; b = p; break;
-        case 1: r = q; g = v; b = p; break;
-        case 2: r = p; g = v; b = t; break;
-        case 3: r = p; g = q; b = v; break;
-        case 4: r = t; g = p; b = v; break;
-        case 5: r = v; g = p; b = q; break;
-      }
-
-      return [
-        Math.round(r * 255),
-        Math.round(g * 255),
-        Math.round(b * 255)
-      ]
-    }
-
     const ws = new WebSocket('ws://192.168.1.2:8080')
-
-    const PIXEL_NUM = 292
-    const PIXEL_GAP = 0
+    ws.binaryType = 'arraybuffer'
 
     const cnvs = document.querySelector('canvas')
     const ctx = cnvs.getContext('2d')
 
-    cnvs.width = innerWidth
-    cnvs.height = innerHeight
-
-    const cw = cnvs.width
-    const ch = cnvs.height
-
-    const p_cont_size = cw / PIXEL_NUM
-    const p_size = p_cont_size - PIXEL_GAP * 2
-
-    function drawPixel(index = 0, color = '#fff') {
-      const horizon = ch / 2
-
-      ctx.shadowColor = color
-      ctx.fillStyle = color
-      ctx.fillRect(p_cont_size * index + PIXEL_GAP , horizon - p_size / 2, p_size, p_size)
-
-      // ctx.shadowBlur = 32
-      // ctx.fillRect(p_cont_size * index + PIXEL_GAP , horizon - p_size / 2, p_size, p_size)
-
-      // ctx.shadowBlur = 64
-      // ctx.fillRect(p_cont_size * index + PIXEL_GAP , horizon - p_size / 2, p_size, p_size)
+    function resizeCanvas() {
+      const pixelRatio = window.devicePixelRatio || 1
+      cnvs.width = Math.round(innerWidth * pixelRatio)
+      cnvs.height = Math.round(innerHeight * pixelRatio)
     }
 
-    ws.onmessage = async (event) => {
-      try {
-        //event.data = '0,255,255;15,255,255;...;'
-        // const leds = JSON.parse(event.data)
-        // const leds = event.data.split(';').map(ledStr => ledStr.split(','))
-        const buffer = await event.data.arrayBuffer()
-        const data_array = Array.from(new Uint8Array(buffer))
+    function drawPixels(data) {
+      const pixelHeight = 40
+      const channelCount = 3
+      const pixelCount = Math.floor(data.length / channelCount)
+      if (pixelCount === 0) return
 
-        const leds = []
+      const pixelWidth = cnvs.width / pixelCount
+      ctx.clearRect(0, 0, cnvs.width, cnvs.height)
 
-        for(let i = 0; i < data_array.length; i += 3) {
-          leds.push([
-            data_array[i],
-            data_array[i+1],
-            data_array[i+2]
-          ])
-        }
+      for (let pixelIndex = 0; pixelIndex < pixelCount; pixelIndex++) {
+        const byteIndex = pixelIndex * channelCount
+        const red = data[byteIndex]
+        const green = data[byteIndex + 1]
+        const blue = data[byteIndex + 2]
 
-        for(let i = 0; i < PIXEL_NUM; i++) {
-          // const led = leds[i] // like "12,15,63"
-          const led = leds[i].map(value => +value)
-
-          drawPixel(i, 'rgb(' + hsv2rgb(led).join(',') + ')')
-        }
-      } catch(err) {}
+        ctx.fillStyle = `rgb(${red} ${green} ${blue})`
+        ctx.fillRect(
+          Math.floor(pixelIndex * pixelWidth),
+          cnvs.height/2 - pixelHeight/2,
+          Math.ceil(pixelWidth),
+          pixelHeight,
+        )
+      }
     }
 
-    ws.onerror = () => alert("Screenshoteer server not found, is it works?")
+    resizeCanvas()
+    window.addEventListener('resize', resizeCanvas)
 
-    // let iterator = 0
-    // setInterval(() => {
-    //   ctx.clearRect(0, 0, cw, ch)
-    //   for(let i = 0; i < PIXEL_NUM; i++) drawPixel(i, 'rgb(' + hsv2rgb(i + iterator, 255, 255).join(',') + ')')
+    ws.addEventListener('message', (event) => {
+      drawPixels(new Uint8Array(event.data))
+    })
 
-    //   iterator += 1
-    // }, 8)
+    ws.addEventListener('error', () => {
+      alert('Screenshoteer server not found. Is it running?')
+    })
   </script>
 </body>
 </html>
