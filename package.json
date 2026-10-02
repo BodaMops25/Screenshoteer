@@ -12,6 +12,7 @@
   "dependencies": {
     "cross-spawn": "^7.0.6",
     "dgram": "^1.0.1",
+    "loopback-capture": "^3.0.2",
     "wled-client": "^0.22.1"
   },
   "devDependencies": {
