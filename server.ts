@@ -8,6 +8,8 @@ if (process.platform !== 'win32') {
   throw new Error('This collector currently supports Windows only');
 }
 
+const TIMEOUT_TO_SET_NO_MUSIC_MS = 30
+
 const DEBUG_MDDE = true,
   AVARAGE_ARR_MAX = 100,
   DEBUG_LOGS_INTERVAL = 10
@@ -15,22 +17,25 @@ const DEBUG_MDDE = true,
 const avarageArr: number[] = []
 let avarageArrIndex = 0
 let timemark = +new Date()
-let audioLevelRaw = 1
 
 const targetHost = '192.168.1.18';
 const targetPort = 4048;
 
-let wss, simulation_client
+let wss
+let simulation_client: any | undefined
 
 if (DEBUG_MDDE) {
   wss = new WebSocket.Server({ port: 8080 })
-  wss.on('connection', (client) => {
+  wss.on('connection', (client: any) => {
     simulation_client = client
     console.log('simulation client changed')
   })
 }
 
 const socket = new WLEDDdp(targetHost, targetPort);
+
+let audioLevelRaw = 0
+let lastAudioChunkDate = 0
 
 const capture = new LoopbackCapture();
 capture.startSystemAudio((chunk) => {
@@ -46,6 +51,7 @@ capture.startSystemAudio((chunk) => {
   }
 
   audioLevelRaw = Math.sqrt(sumSquares / count)
+  lastAudioChunkDate = Date.now()
 });
 
 (async () => {
@@ -72,7 +78,13 @@ capture.startSystemAudio((chunk) => {
     ledNum: ledsCount,
     onRawRGBData: (color_seq) => {
 
-      const brightnessLevel = audioToBrightness(audioLevelRaw)
+      let brightnessLevel = 1
+
+      if (Date.now() - lastAudioChunkDate > TIMEOUT_TO_SET_NO_MUSIC_MS) {
+        brightnessLevel = .3 * Math.sin(Math.round(performance.now()) / 500) + .7
+      } else {
+        brightnessLevel = audioToBrightness(audioLevelRaw)
+      }
 
       /* changeManyPixelsInSeq(color_seq, (pixel) => {
         const tmp = pixel[0]
