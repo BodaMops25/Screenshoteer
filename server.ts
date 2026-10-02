@@ -3,6 +3,10 @@ import { changeManyPixelsInSeq, rgbBrightnessCorrection, audioToBrightness } fro
 import loopbackCapture from 'loopback-capture';
 const { LoopbackCapture } = loopbackCapture;
 
+if (process.platform !== 'win32') {
+  throw new Error('This collector currently supports Windows only');
+}
+
 // LEDS EXTRACTION
 
 const DEBUG_MDDE = true,
@@ -19,7 +23,6 @@ const targetPort = 4048;
 const socket = new WLEDDdp(targetHost, targetPort);
 
 const capture = new LoopbackCapture();
-
 capture.startSystemAudio((chunk) => {
 
   let sumSquares = 0;
