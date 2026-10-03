@@ -3,6 +3,12 @@ import { createServer } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { WebSocketServer } from 'ws'
 import { WLEDDdp } from '../server-utilites.ts'
+import { rgbLedStripCorrection } from '../utilites.ts'
+import {
+  LED_BLACK_POINTS,
+  LED_LOW_RANGE_GAMMAS,
+  LED_MATCH_POINT,
+} from '../config.ts'
 
 // Change these values for your WLED installation.
 const LED_COUNT = 720
@@ -16,12 +22,18 @@ const wled = new WLEDDdp(WLED_HOST, WLED_PORT)
 let currentColor = null
 
 function sendSolidColor(red, green, blue) {
+  const corrected = rgbLedStripCorrection(
+    [red, green, blue],
+    LED_BLACK_POINTS,
+    LED_LOW_RANGE_GAMMAS,
+    LED_MATCH_POINT,
+  )
   const data = Buffer.alloc(LED_COUNT * 3)
 
   for (let offset = 0; offset < data.length; offset += 3) {
-    data[offset] = red
-    data[offset + 1] = green
-    data[offset + 2] = blue
+    data[offset] = corrected[0]
+    data[offset + 1] = corrected[1]
+    data[offset + 2] = corrected[2]
   }
 
   wled.sendRaw(data, LED_OFFSET * 3)

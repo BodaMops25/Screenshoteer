@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws';
 import { CmdLogs, createLEDSeqFlow, WLEDDdp } from './server-utilites.ts';
-import { changeManyPixelsInSeq, rgbBrightnessCorrection, audioToBrightness, getAudioLevels } from './utilites.ts';
+import { changeManyPixelsInSeq, rgbBrightnessCorrection, rgbLedStripCorrection, audioToBrightness, getAudioLevels } from './utilites.ts';
 import {
   DEBUG_NO_WLED,
   TIMEOUT_TO_SET_NO_MUSIC_MS,
@@ -9,7 +9,10 @@ import {
   WLED_HOST,
   FPS,
   DEBUG_WS_SIMULATION,
-  DEBUG_LOGS
+  DEBUG_LOGS,
+  LED_BLACK_POINTS,
+  LED_LOW_RANGE_GAMMAS,
+  LED_MATCH_POINT
 } from './config.ts';
 import loopbackCapture from 'loopback-capture';
 const { LoopbackCapture } = loopbackCapture;
@@ -109,6 +112,7 @@ const logs = new CmdLogs(250, DEBUG_LOGS);
 
       changeManyPixelsInSeq(color_seq, (pixel) => {
         rgbBrightnessCorrection(pixel, brightnessLevel)
+        rgbLedStripCorrection(pixel, LED_BLACK_POINTS, LED_LOW_RANGE_GAMMAS, LED_MATCH_POINT)
         return pixel
       })
 

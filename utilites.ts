@@ -147,6 +147,30 @@ export function rgbBrightnessCorrection(pixel: RGB, brightness = 1) {
   pixel[2] = clamp(Math.round(pixel[2] * brightness), 0, 255)
 }
 
+export function rgbLedStripCorrection(
+  pixel: RGB,
+  blackPoints: readonly [number, number, number] = [8, 8, 8],
+  lowRangeGammas: readonly [number, number, number] = [1.5, 1.5, 1.5],
+  matchPoint = 128,
+) {
+  for (let channel = 0; channel < 3; channel++) {
+    const value = Math.max(0, Math.min(255, pixel[channel]))
+    const blackPoint = Math.max(0, Math.min(matchPoint - 1, blackPoints[channel]))
+    const gamma = Math.max(0.01, lowRangeGammas[channel])
+
+    if (value <= blackPoint) {
+      pixel[channel] = 0
+    } else if (value < matchPoint) {
+      const normalized = (value - blackPoint) / (matchPoint - blackPoint)
+      pixel[channel] = Math.round(matchPoint * normalized ** gamma)
+    } else {
+      pixel[channel] = Math.round(value)
+    }
+  }
+
+  return pixel
+}
+
 export function rgbContrastCorrection(pixel: RGB, contrast = 1) {
   const midpoint = 128
 
