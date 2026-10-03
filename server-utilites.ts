@@ -2,6 +2,80 @@ import { spawn } from 'child_process'
 import dgram from 'dgram';
 import { WLEDClient } from 'wled-client';
 
+type CmdLogValue = string | number | boolean | null | undefined
+
+type AverageMetric = {
+    samples: number[]
+    nextIndex: number
+    maxSamples: number
+}
+
+export class CmdLogs {
+    private readonly values = new Map<string, CmdLogValue>()
+    private readonly averages = new Map<string, AverageMetric>()
+    private readonly refreshTimer?: NodeJS.Timeout
+    private readonly enabled: boolean
+    private previousLineLength = 0
+
+    constructor(refreshIntervalMs = 250, enabled = true) {
+        this.enabled = enabled
+        if (enabled) {
+            this.refreshTimer = setInterval(() => this.render(), refreshIntervalMs)
+            this.refreshTimer.unref()
+        }
+    }
+
+    public set(name: string, value: CmdLogValue): void {
+        this.values.set(name, value)
+    }
+
+    public sample(name: string, value: number, maxSamples = 100): number {
+        let metric = this.averages.get(name)
+
+        if (!metric || metric.maxSamples !== maxSamples) {
+            metric = { samples: [], nextIndex: 0, maxSamples }
+            this.averages.set(name, metric)
+        }
+
+        if (metric.samples.length < metric.maxSamples) {
+            metric.samples.push(value)
+        } else {
+            metric.samples[metric.nextIndex] = value
+            metric.nextIndex = (metric.nextIndex + 1) % metric.maxSamples
+        }
+
+        const average = metric.samples.reduce((sum, sample) => sum + sample, 0) / metric.samples.length
+        this.set(name, average)
+        return average
+    }
+
+    public render(): void {
+        if (!this.enabled || !process.stdout.isTTY) return
+
+        const line = [...this.values]
+            .map(([name, value]) => `${name}: ${this.formatValue(value)}`)
+            .join(' | ')
+        const paddedLine = line.padEnd(this.previousLineLength)
+
+        process.stdout.write(`\r${paddedLine}`)
+        this.previousLineLength = line.length
+    }
+
+    public stop(): void {
+        if (this.refreshTimer) clearInterval(this.refreshTimer)
+        this.render()
+        if (this.enabled && process.stdout.isTTY) process.stdout.write('\n')
+    }
+
+    private formatValue(value: CmdLogValue): string {
+        if (typeof value === 'number') {
+            return Number.isInteger(value) ? value.toString() : value.toFixed(4)
+        }
+
+        return String(value ?? '-')
+    }
+}
+
 export function createLEDSeqFlow({
     ledNum,
     framerate,
@@ -21,7 +95,8 @@ export function createLEDSeqFlow({
             "-f", "gdigrab",
             "-video_size", "2560x1440",
             "-i", "desktop",
-            '-vf', `scale=300:1,eq=brightness=0:contrast=1:saturation=3,avgblur=3,scale=${ledNum}:1:flags=area`,
+            // '-vf', `scale=300:1,eq=brightness=0:contrast=1:saturation=3,avgblur=3,scale=${ledNum}:1:flags=area`,
+            '-vf', `scale=300:1,avgblur=3,scale=${ledNum}:1:flags=area`,
             "-f", "rawvideo",
             "-pix_fmt", "rgb24",
             "-"

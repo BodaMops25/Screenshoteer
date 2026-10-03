@@ -5,7 +5,7 @@ export const FPS = 60
 export const TIMEOUT_TO_SET_NO_MUSIC_MS = 30
 
 export const DEBUG_WS_SIMULATION = true
-export const DEBUG_NO_WLED = true
+export const DEBUG_NO_WLED = false
 export const DEBUG_LED_COUNT = 300
 export const DEBUG_LOGS = true
 export const DEBUG_LOGS_INTERVAL = 10

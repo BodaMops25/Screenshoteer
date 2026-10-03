@@ -1,12 +1,10 @@
 import { WebSocket } from 'ws';
-import { createLEDSeqFlow, WLEDDdp } from './server-utilites.ts';
-import { changeManyPixelsInSeq, rgbBrightnessCorrection, audioToBrightness } from './utilites.ts';
+import { CmdLogs, createLEDSeqFlow, WLEDDdp } from './server-utilites.ts';
+import { changeManyPixelsInSeq, rgbBrightnessCorrection, audioToBrightness, getAudioLevels } from './utilites.ts';
 import {
-  DEBUG_MDDE,
   DEBUG_NO_WLED,
-  DEBUG_LED_COUNT,
   TIMEOUT_TO_SET_NO_MUSIC_MS,
-  DEBUG_LOGS_INTERVAL,
+  DEBUG_LED_COUNT,
   WLED_PORT,
   WLED_HOST,
   FPS,
@@ -22,17 +20,13 @@ if (process.platform !== 'win32') {
 
 const capture = new LoopbackCapture()
 const socket = new WLEDDdp(WLED_HOST, WLED_PORT);
+const logs = new CmdLogs(250, DEBUG_LOGS);
 
 (async () => {
 
-  const AVARAGE_ARR_MAX = 100
-
-  const avarageArr: number[] = []
-  let avarageArrIndex = 0
-  let timemark = +new Date()
-
   let audioLevelRaw = 0
   let lastAudioChunkDate = 0
+  let lastFrameTime: number | undefined
 
   capture.startSystemAudio((chunk) => {
 
@@ -73,6 +67,8 @@ const socket = new WLEDDdp(WLED_HOST, WLED_PORT);
     ledsCount = DEBUG_LED_COUNT
   }
 
+  logs.set('LEDs', ledsCount)
+
   let simulation_client: any | undefined
 
   if (DEBUG_WS_SIMULATION) {
@@ -87,14 +83,29 @@ const socket = new WLEDDdp(WLED_HOST, WLED_PORT);
     framerate: FPS,
     ledNum: ledsCount,
     onRawRGBData: (color_seq) => {
-
+      const now = performance.now()
+      const averageSendMs = lastFrameTime === undefined
+        ? 0
+        : logs.sample('Average send ms', now - lastFrameTime)
+      lastFrameTime = now
+      const audioPlaying = Date.now() - lastAudioChunkDate <= TIMEOUT_TO_SET_NO_MUSIC_MS
+      const audioBrightness = audioToBrightness(audioPlaying ? audioLevelRaw : 0)
       let brightnessLevel = 1
 
-      if (Date.now() - lastAudioChunkDate > TIMEOUT_TO_SET_NO_MUSIC_MS) {
+      if (!audioPlaying) {
         brightnessLevel = .3 * Math.sin(Math.round(performance.now()) / 500) + .7
       } else {
-        brightnessLevel = audioToBrightness(audioLevelRaw)
+        brightnessLevel = audioBrightness
       }
+
+      const audioLevels = getAudioLevels()
+
+      logs.set('Time', new Date().toLocaleTimeString())
+      logs.set('Raw audio', audioPlaying ? audioLevelRaw : 0)
+      logs.set('Average audio', audioLevels.average)
+      logs.set('Smooth audio', audioLevels.smooth)
+      logs.set('Audio playing', audioPlaying)
+      logs.set('Framerate', averageSendMs > 0 ? 1000 / averageSendMs : 0)
 
       changeManyPixelsInSeq(color_seq, (pixel) => {
         rgbBrightnessCorrection(pixel, brightnessLevel)
@@ -103,31 +114,18 @@ const socket = new WLEDDdp(WLED_HOST, WLED_PORT);
 
       if (!DEBUG_NO_WLED) socket.sendRaw(color_seq, ledsOffset * 3)
       if (DEBUG_WS_SIMULATION && simulation_client) simulation_client.send(color_seq)
-      if (DEBUG_LOGS) {
-
-        avarageArr[avarageArrIndex++] = +new Date() - timemark
-        timemark = +new Date()
-        if (avarageArrIndex % DEBUG_LOGS_INTERVAL === 0) {
-          console.log(
-            'MS: %s, Clients: %d, Time: %s',
-            Math.round(avarageArr.reduce((sum, num) => sum + num, 0) / avarageArr.length).toString().padStart(4, '0'),
-            0,
-            new Date().toISOString()
-          )
-        }
-
-        if (avarageArrIndex >= AVARAGE_ARR_MAX) avarageArrIndex = 0
-      }
     }
   })
 })()
 
 process.once("SIGINT", () => {
+  logs.stop()
   capture.stop()
   process.exit(0)
 })
 
 process.once("SIGTERM", () => {
+  logs.stop()
   capture.stop()
   process.exit(0)
 })

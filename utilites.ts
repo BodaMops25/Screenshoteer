@@ -8,6 +8,13 @@ let averageLevel = 0;
 let smoothLevel = 0;
 let lastUpdateTime = 0;
 
+export function getAudioLevels() {
+  return {
+    average: averageLevel,
+    smooth: smoothLevel,
+  }
+}
+
 export function audioToBrightness(rms: number): number {
   const now = Date.now();
 
