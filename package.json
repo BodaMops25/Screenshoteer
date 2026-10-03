@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node server.ts"
+    "start": "node server.ts",
+    "color-correction": "node color-correction/server.js"
   },
   "author": "BodaMops25",
   "license": "ISC",
