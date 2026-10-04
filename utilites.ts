@@ -2,7 +2,7 @@ export type RGB = [number, number, number]
 
 const AVERAGE_TIME_MS = 3000;
 const NOISE_FLOOR = 0.003;
-const PEAK_TO_AVERAGE_RATIO = 2.5;
+const PEAK_TO_AVERAGE_RATIO = 1.5;
 
 let averageLevel = 0;
 let smoothLevel = 0;

@@ -23,7 +23,7 @@ if (process.platform !== 'win32') {
 
 const capture = new LoopbackCapture()
 const socket = new WLEDDdp(WLED_HOST, WLED_PORT);
-const logs = new CmdLogs(250, DEBUG_LOGS);
+const logs = new CmdLogs(16, DEBUG_LOGS);
 
 (async () => {
 
@@ -92,14 +92,19 @@ const logs = new CmdLogs(250, DEBUG_LOGS);
         : logs.sample('Average send ms', now - lastFrameTime)
       lastFrameTime = now
       const audioPlaying = Date.now() - lastAudioChunkDate <= TIMEOUT_TO_SET_NO_MUSIC_MS
-      const audioBrightness = audioToBrightness(audioPlaying ? audioLevelRaw : 0)
-      let brightnessLevel = 1
+      // const audioBrightness = audioToBrightness(audioPlaying ? audioLevelRaw : 0)
 
-      if (!audioPlaying) {
-        brightnessLevel = .3 * Math.sin(Math.round(performance.now()) / 500) + .7
-      } else {
-        brightnessLevel = audioBrightness
-      }
+      // let brightnessLevel = 1
+
+      const brightnessLevel = audioPlaying ? audioToBrightness(audioLevelRaw) : 1
+
+      // if(audioPlaying) brightnessLevel = 
+
+      // if (!audioPlaying) {
+      //   brightnessLevel = .3 * Math.sin(Math.round(performance.now()) / 500) + .7
+      // } else {
+      //   brightnessLevel = audioBrightness
+      // }
 
       const audioLevels = getAudioLevels()
 

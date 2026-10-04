@@ -95,8 +95,8 @@ export function createLEDSeqFlow({
             "-f", "gdigrab",
             "-video_size", "2560x1440",
             "-i", "desktop",
-            // '-vf', `scale=300:1,eq=brightness=0:contrast=1:saturation=3,avgblur=3,scale=${ledNum}:1:flags=area`,
-            '-vf', `scale=300:1,avgblur=3,scale=${ledNum}:1:flags=area`,
+            '-vf', `scale=300:1,eq=brightness=0:contrast=1:saturation=3,avgblur=3,scale=${ledNum}:1:flags=area`,
+            // '-vf', `scale=300:1,avgblur=3,scale=${ledNum}:1:flags=area`,
             "-f", "rawvideo",
             "-pix_fmt", "rgb24",
             "-"
