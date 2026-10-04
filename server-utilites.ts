@@ -15,7 +15,7 @@ export class CmdLogs {
     private readonly averages = new Map<string, AverageMetric>()
     private readonly refreshTimer?: NodeJS.Timeout
     private readonly enabled: boolean
-    private previousLineLength = 0
+    private renderedRowCount = 0
 
     constructor(refreshIntervalMs = 250, enabled = true) {
         this.enabled = enabled
@@ -52,13 +52,21 @@ export class CmdLogs {
     public render(): void {
         if (!this.enabled || !process.stdout.isTTY) return
 
-        const line = [...this.values]
+        const parts = [...this.values]
             .map(([name, value]) => `${name}: ${this.formatValue(value)}`)
-            .join(' | ')
-        const paddedLine = line.padEnd(this.previousLineLength)
+        const width = Math.max(20, (process.stdout.columns ?? 80) - 1)
+        const rows = this.packRows(parts, width)
 
-        process.stdout.write(`\r${paddedLine}`)
-        this.previousLineLength = line.length
+        if (this.renderedRowCount > 0) {
+            process.stdout.write('\r')
+            if (this.renderedRowCount > 1) {
+                process.stdout.write(`\x1b[${this.renderedRowCount - 1}A`)
+            }
+            process.stdout.write('\x1b[0J')
+        }
+
+        process.stdout.write(rows.join('\r\n'))
+        this.renderedRowCount = rows.length
     }
 
     public stop(): void {
@@ -73,6 +81,29 @@ export class CmdLogs {
         }
 
         return String(value ?? '-')
+    }
+
+    private packRows(parts: string[], width: number): string[] {
+        const rows: string[] = []
+        let row = ''
+        let itemsInRow = 0
+
+        for (const originalPart of parts) {
+            const part = originalPart.slice(0, width)
+            const candidate = row ? `${row} | ${part}` : part
+
+            if (row && (candidate.length > width || itemsInRow >= 3)) {
+                rows.push(row)
+                row = part
+                itemsInRow = 1
+            } else {
+                row = candidate
+                itemsInRow++
+            }
+        }
+
+        if (row) rows.push(row)
+        return rows.length > 0 ? rows : ['']
     }
 }
 
