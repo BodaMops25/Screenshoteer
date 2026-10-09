@@ -11,6 +11,7 @@
   "author": "BodaMops25",
   "license": "ISC",
   "dependencies": {
+    "@coooookies/windows-smtc-monitor": "^1.0.12",
     "cross-spawn": "^7.0.6",
     "dgram": "^1.0.1",
     "loopback-capture": "^3.0.2",
