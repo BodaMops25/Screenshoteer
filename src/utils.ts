@@ -127,11 +127,17 @@ export function interpolateLedArrays(from: RGB[], to: RGB[], amount: number): RG
   const mix = clamp(amount, 0, 1);
   return to.map((target, index) => {
     const source = from[index] ?? target;
-    return [
-      Math.round(source[0] + (target[0] - source[0]) * mix),
-      Math.round(source[1] + (target[1] - source[1]) * mix),
-      Math.round(source[2] + (target[2] - source[2]) * mix),
-    ];
+    return target.map((targetChannel, channel) => {
+      const sourceChannel = source[channel];
+      const distance = targetChannel - sourceChannel;
+      const travelled = distance * mix;
+
+      // Quantize toward the source. This prevents short color distances from
+      // reaching the target earlier than the shared transition end time.
+      return sourceChannel + (distance >= 0
+        ? Math.floor(travelled)
+        : Math.ceil(travelled));
+    }) as RGB;
   });
 }
 

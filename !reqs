@@ -22,8 +22,5 @@ Windows tray feature:
 
 Global features:
 - process must listen for wled connection and autoattach if lost
-- debug websocket html page simulation to see what leds data will return to wled
-- some console statistics 
-
-BUGS:
-- in music mode while transition, different colors transit in different time
+- debug websocket html page simulation to see what leds data will return to wled ✔
+- some console statistics ✔

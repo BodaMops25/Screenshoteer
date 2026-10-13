@@ -2,7 +2,7 @@ export type AppMode = 'music' | 'screen-capture';
 export type MusicAudioMode = 'bands' | 'spectrum' | 'current';
 export type MusicColorMode = 'main' | 'palette';
 
-export const MODE: AppMode = 'screen-capture';
+export const MODE: AppMode = 'music';
 
 export const WLED = {
   host: '192.168.1.18',
@@ -36,8 +36,8 @@ export const MUSIC = {
   minimumColorProportion: 0.06,
   paletteSaturation: 1.5,
   // coverTransitionMs: 1_200,
-  coverTransitionMs: 5_000,
-  idlePulseMinimum: 0.7,
+  coverTransitionMs: 8_000,
+  idlePulseMinimum: 0.8,
   idlePulsePeriodMs: 2_000,
 } as const;
 
