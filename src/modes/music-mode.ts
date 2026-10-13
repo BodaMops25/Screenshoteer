@@ -26,7 +26,7 @@ export class MusicMode implements AppModeController {
   private isPlaying = false;
   private rawAudioLevel = 0;
   private normalizedAudioLevel = 0;
-  private bands: AudioBands = [0, 0, 0, 0];
+  private bands: AudioBands;
   private spectrum: number[];
   private currentLeds: RGB[];
   private transitionFrom: RGB[];
@@ -40,6 +40,7 @@ export class MusicMode implements AppModeController {
     this.transitionFrom = initial;
     this.targetLeds = initial;
     this.spectrum = new Array<number>(context.ledCount).fill(0);
+    this.bands = new Array<number>(MUSIC.paletteColorCount).fill(0);
 
     this.media = new MediaMonitor({
       onCoverChange: (cover) => this.updateCover(cover),
@@ -52,12 +53,13 @@ export class MusicMode implements AppModeController {
         this.rawAudioLevel = value;
         this.normalizedAudioLevel = this.normalizer.update(value);
       },
-      onBandsUpdate: MUSIC.audioMode === 'four-bands'
+      onBandsUpdate: MUSIC.audioMode === 'bands'
         ? (bands) => { this.bands = bands; }
         : undefined,
       onSpectrumUpdate: MUSIC.audioMode === 'spectrum'
         ? (spectrum) => { this.spectrum = spectrum; }
         : undefined,
+      bandCount: MUSIC.paletteColorCount,
       spectrumSize: MUSIC.audioMode === 'spectrum' ? context.ledCount : 0,
     });
   }
@@ -98,6 +100,10 @@ export class MusicMode implements AppModeController {
         .map((color) => changeRgbSaturation(color.array(), MUSIC.paletteSaturation));
 
       if (colors.length === 0) return;
+      if (MUSIC.audioMode === 'bands') {
+        this.meter.setBandCount(colors.length);
+        this.bands = new Array<number>(colors.length).fill(0);
+      }
       this.transitionFrom = this.getTransitionedLeds();
       this.targetLeds = ledsPaletteSegments(colors, this.context.ledCount);
       this.transitionStartedAt = performance.now();
@@ -130,13 +136,20 @@ export class MusicMode implements AppModeController {
       const brightness = MUSIC.idlePulseMinimum
         + pulseRange * ((Math.sin(phase) + 1) / 2);
       output = baseLeds.map((led) => changeRgbAbsoluteBrightness(led, brightness));
+    } else if (MUSIC.audioMode === 'current') {
+      output = baseLeds.map((led) => (
+        changeRgbAbsoluteBrightness(led, this.normalizedAudioLevel)
+      ));
     } else if (MUSIC.audioMode === 'spectrum') {
       output = baseLeds.map((led, index) => (
         changeRgbAbsoluteBrightness(led, this.spectrum[index] ?? 0)
       ));
     } else {
       output = baseLeds.map((led, index) => {
-        const bandIndex = Math.min(3, Math.floor(index * 4 / baseLeds.length));
+        const bandIndex = Math.min(
+          this.bands.length - 1,
+          Math.floor(index * this.bands.length / baseLeds.length),
+        );
         return changeRgbAbsoluteBrightness(led, this.bands[bandIndex]);
       });
     }

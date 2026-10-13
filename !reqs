@@ -1,12 +1,12 @@
 Music listening mode:
-- get color palette from media cover(thumbnail)
-- adjustable colors count
-- adjustable blur level to make gradient between color sectors
-- pulsing brightness idle behavior if no music
-- smooth color transition when cover change
-- get current audio level as brightness for whole led strip
-- split audio frequncies to ranges synced to colors count and each range has own volume level
-- all strip work as spectrum for 0 - 20kHz audio flow
+- get color palette from media cover(thumbnail) ✔
+- adjustable colors count ✔
+- adjustable blur level to make gradient between color sectors ✔
+- pulsing brightness idle behavior if no music ✔
+- smooth color transition when cover change ✔
+- get current audio level as brightness for whole led strip ✔
+- split audio frequncies to ranges synced to colors count and each range has own volume level ✔
+- all strip work as spectrum for 0 - 20kHz audio flow ✔
 
 Screen recording mode:
 - record screen, proccess to n-leds strip and send to wled

@@ -1,38 +1,29 @@
 import FFT from 'fft.js';
 
-export type AudioBands = [
-  subBass: number,
-  bass: number,
-  melody: number,
-  treble: number,
-];
+export type AudioBands = number[];
 
 export interface AudioMeterOptions {
   onAudioUpdate?: (value: number) => void;
   onBandsUpdate?: (bands: AudioBands) => void;
   onSpectrumUpdate?: (spectrum: number[]) => void;
+  bandCount?: number;
   spectrumSize?: number;
 }
 
 export class AudioMeter {
   private static readonly SAMPLE_RATE = 48_000;
   private static readonly FFT_SIZE = 2048;
-  private static readonly BAND_RANGES = [
-    [20, 80],
-    [80, 250],
-    [250, 4_000],
-    [4_000, 12_000],
-  ] as const;
-
   private readonly onAudioUpdate: (value: number) => void;
   private readonly onBandsUpdate: (bands: AudioBands) => void;
   private readonly onSpectrumUpdate?: (spectrum: number[]) => void;
+  private readonly frequencyAnalysisEnabled: boolean;
   private readonly spectrumSize: number;
   private readonly fft = new FFT(AudioMeter.FFT_SIZE);
   private readonly fftInput = new Array<number>(AudioMeter.FFT_SIZE).fill(0);
   private readonly fftOutput = this.fft.createComplexArray();
-  private readonly bandAverages: AudioBands = [0, 0, 0, 0];
-  private readonly smoothedBands: AudioBands = [0, 0, 0, 0];
+  private bandRanges: Array<readonly [number, number]>;
+  private bandAverages: AudioBands;
+  private smoothedBands: AudioBands;
   private readonly spectrumAverages: number[];
   private readonly smoothedSpectrum: number[];
   private readonly spectrumBinRanges: Array<readonly [number, number]>;
@@ -43,11 +34,17 @@ export class AudioMeter {
     onAudioUpdate,
     onBandsUpdate,
     onSpectrumUpdate,
+    bandCount = 4,
     spectrumSize = 0,
   }: AudioMeterOptions = {}) {
     this.onAudioUpdate = onAudioUpdate ?? (() => {});
     this.onBandsUpdate = onBandsUpdate ?? (() => { });
     this.onSpectrumUpdate = onSpectrumUpdate;
+    this.frequencyAnalysisEnabled = Boolean(onBandsUpdate || onSpectrumUpdate);
+    const normalizedBandCount = Math.max(1, Math.floor(bandCount));
+    this.bandRanges = this.createLogFrequencyRanges(normalizedBandCount, 20, 12_000);
+    this.bandAverages = new Array<number>(normalizedBandCount).fill(0);
+    this.smoothedBands = new Array<number>(normalizedBandCount).fill(0);
     this.spectrumSize = Math.max(0, Math.floor(spectrumSize));
     this.spectrumAverages = new Array<number>(this.spectrumSize).fill(0);
     this.smoothedSpectrum = new Array<number>(this.spectrumSize).fill(0);
@@ -72,6 +69,14 @@ export class AudioMeter {
     });
   }
 
+  setBandCount(count: number): void {
+    const normalizedCount = Math.max(1, Math.floor(count));
+    if (normalizedCount === this.bandRanges.length) return;
+    this.bandRanges = this.createLogFrequencyRanges(normalizedCount, 20, 12_000);
+    this.bandAverages = new Array<number>(normalizedCount).fill(0);
+    this.smoothedBands = new Array<number>(normalizedCount).fill(0);
+  }
+
   push(chunk: Buffer): void {
     let sumSquares = 0;
     let count = 0;
@@ -85,12 +90,14 @@ export class AudioMeter {
       sumSquares += (left * left + right * right) / 2;
       count += 1;
 
-      this.fftInput[this.fftInputIndex] = (left + right) / 2;
-      this.fftInputIndex++;
+      if (this.frequencyAnalysisEnabled) {
+        this.fftInput[this.fftInputIndex] = (left + right) / 2;
+        this.fftInputIndex++;
 
-      if (this.fftInputIndex === AudioMeter.FFT_SIZE) {
-        this.analyzeFrequencyBands();
-        this.fftInputIndex = 0;
+        if (this.fftInputIndex === AudioMeter.FFT_SIZE) {
+          this.analyzeFrequencyBands();
+          this.fftInputIndex = 0;
+        }
       }
     }
 
@@ -113,7 +120,7 @@ export class AudioMeter {
       : 1 - Math.exp(-elapsed / 3000);
     this.lastBandUpdate = now;
 
-    const bands = AudioMeter.BAND_RANGES.map(([minimumHz, maximumHz], bandIndex) => {
+    const bands = this.bandRanges.map(([minimumHz, maximumHz], bandIndex) => {
       const firstBin = Math.max(1, Math.ceil(
         minimumHz * AudioMeter.FFT_SIZE / AudioMeter.SAMPLE_RATE,
       ));
@@ -153,7 +160,7 @@ export class AudioMeter {
       ) * smoothing;
 
       return this.smoothedBands[bandIndex];
-    }) as AudioBands;
+    });
 
     this.onBandsUpdate(bands);
 
@@ -194,5 +201,17 @@ export class AudioMeter {
 
       this.onSpectrumUpdate(spectrum);
     }
+  }
+
+  private createLogFrequencyRanges(
+    count: number,
+    minimumHz: number,
+    maximumHz: number,
+  ): Array<readonly [number, number]> {
+    const ratio = maximumHz / minimumHz;
+    return Array.from({ length: count }, (_, index) => [
+      minimumHz * ratio ** (index / count),
+      minimumHz * ratio ** ((index + 1) / count),
+    ] as const);
   }
 }
