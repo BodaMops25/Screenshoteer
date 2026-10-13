@@ -8,12 +8,6 @@ export interface ScreenCaptureOptions {
   y: number;
   width: number;
   height: number;
-  saturation: number;
-  brightness: number;
-  contrast: number;
-  gamma: number;
-  blur: number;
-  intermediateWidth: number;
   onFrame: (frame: Buffer) => void;
 }
 
@@ -29,13 +23,7 @@ export class ScreenCapture {
   start(): void {
     if (this.process) return;
 
-    const filter = [
-      `scale=${this.options.intermediateWidth}:1`,
-      `eq=brightness=${this.options.brightness}:contrast=${this.options.contrast}`
-        + `:saturation=${this.options.saturation}:gamma=${this.options.gamma}`,
-      this.options.blur > 0 ? `avgblur=${this.options.blur}` : null,
-      `scale=${this.options.ledCount}:1:flags=area`,
-    ].filter(Boolean).join(',');
+    const filter = `scale=${this.options.ledCount}:1:flags=area`;
 
     this.process = spawn('ffmpeg', [
       '-fflags', 'nobuffer',

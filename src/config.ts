@@ -2,7 +2,7 @@ export type AppMode = 'music' | 'screen-capture';
 export type MusicAudioMode = 'four-bands' | 'spectrum';
 export type MusicColorMode = 'main' | 'palette';
 
-export const MODE: AppMode = 'screen-capture';
+export const MODE: AppMode = 'music';
 
 export const WLED = {
   host: '192.168.1.18',
@@ -14,6 +14,11 @@ export const WLED = {
 
 export const OUTPUT = {
   fps: 60,
+  brightness: 0,
+  contrast: 1,
+  saturation: 3,
+  gamma: 1,
+  blur: 0,
   ledBlackPoints: [24, 24, 24] as const,
   ledLowRangeGammas: [1.5, 1.5, 1.5] as const,
   ledMatchPoint: 128,
@@ -37,12 +42,6 @@ export const SCREEN_CAPTURE = {
   y: 0,
   width: 2560,
   height: 1440,
-  saturation: 3,
-  brightness: 0,
-  contrast: 1,
-  gamma: 1,
-  blur: 3,
-  intermediateWidth: 300,
 } as const;
 
 export const DEBUG = {
@@ -52,4 +51,3 @@ export const DEBUG = {
   noWled: true,
   fallbackLedCount: 100,
 } as const;
-

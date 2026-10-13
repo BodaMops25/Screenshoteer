@@ -3,8 +3,8 @@ import { Dashboard } from './dashboard.ts';
 import { MusicMode } from './modes/music-mode.ts';
 import { ScreenCaptureMode } from './modes/screen-capture-mode.ts';
 import type { AppModeController } from './modes/types.ts';
+import { OutputProcessor, type OutputAdjustmentName } from './output-processor.ts';
 import { SimulationServer } from './simulation-server.ts';
-import { correctLedBuffer } from './utils.ts';
 import { WLEDDdp } from './WLED_DDP.ts';
 
 if (process.platform !== 'win32') {
@@ -16,6 +16,13 @@ const simulation = new SimulationServer(DEBUG.simulation, DEBUG.simulationPort);
 const abortController = new AbortController();
 let modeController: AppModeController | undefined;
 let shuttingDown = false;
+const outputProcessor = new OutputProcessor({
+  brightness: OUTPUT.brightness,
+  contrast: OUTPUT.contrast,
+  saturation: OUTPUT.saturation,
+  gamma: OUTPUT.gamma,
+  blur: OUTPUT.blur,
+}, OUTPUT);
 
 const wled = new WLEDDdp({
   ...WLED,
@@ -43,12 +50,9 @@ async function start(): Promise<void> {
 
   let lastFrameAt: number | undefined;
   const sendFrame = (source: Buffer): void => {
-    const frame = correctLedBuffer(
-      Buffer.from(source),
-      OUTPUT.ledBlackPoints,
-      OUTPUT.ledLowRangeGammas,
-      OUTPUT.ledMatchPoint,
-    );
+    const processingStartedAt = performance.now();
+    const frame = outputProcessor.process(source);
+    dashboard.sample('Process ms', performance.now() - processingStartedAt);
 
     const now = performance.now();
     if (lastFrameAt !== undefined) {
@@ -90,7 +94,27 @@ process.once('SIGINT', () => shutdown());
 process.once('SIGTERM', () => shutdown());
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (command) => {
-  if (command.toString().trim().toLowerCase() === 'quit') shutdown();
+  for (const line of command.toString().split(/\r?\n/)) {
+    const input = line.trim().toLowerCase();
+    if (!input) continue;
+    if (input === 'quit') {
+      shutdown();
+      return;
+    }
+    if (input === 'settings') {
+      console.log(outputProcessor.get());
+      continue;
+    }
+
+    const match = /^set\s+(brightness|contrast|saturation|gamma|blur)\s+(-?\d+(?:\.\d+)?)$/.exec(input);
+    if (match) {
+      const name = match[1] as OutputAdjustmentName;
+      const value = outputProcessor.set(name, Number(match[2]));
+      dashboard.set(name[0].toUpperCase() + name.slice(1), value);
+      continue;
+    }
+    console.log('Commands: set <brightness|contrast|saturation|gamma|blur> <value>, settings, quit');
+  }
 });
 
 start().catch((error) => {
