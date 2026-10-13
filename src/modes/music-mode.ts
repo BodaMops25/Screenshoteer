@@ -9,7 +9,7 @@ import {
   changeRgbSaturation,
   interpolateLedArrays,
   ledsArrayToBuffer,
-  ledsPaletteGradient,
+  ledsPaletteSegments,
   type RGB,
 } from '../utils.ts';
 import type { AppModeController, ModeContext } from './types.ts';
@@ -35,7 +35,7 @@ export class MusicMode implements AppModeController {
 
   constructor(context: ModeContext) {
     this.context = context;
-    const initial = ledsPaletteGradient([[0, 25, 255]], context.ledCount, 0);
+    const initial = ledsPaletteSegments([[0, 25, 255]], context.ledCount);
     this.currentLeds = initial;
     this.transitionFrom = initial;
     this.targetLeds = initial;
@@ -99,11 +99,7 @@ export class MusicMode implements AppModeController {
 
       if (colors.length === 0) return;
       this.transitionFrom = this.getTransitionedLeds();
-      this.targetLeds = ledsPaletteGradient(
-        colors,
-        this.context.ledCount,
-        MUSIC.gradientSize,
-      );
+      this.targetLeds = ledsPaletteSegments(colors, this.context.ledCount);
       this.transitionStartedAt = performance.now();
       this.context.dashboard.set('Cover colors', colors.length);
     } catch (error) {

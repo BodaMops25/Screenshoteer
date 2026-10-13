@@ -109,14 +109,9 @@ export function correctLedBuffer(
   return data;
 }
 
-export function ledsPaletteGradient(
-  colors: RGB[],
-  ledCount: number,
-  gradientSize: number,
-): RGB[] {
+export function ledsPaletteSegments(colors: RGB[], ledCount: number): RGB[] {
   const usableColors = colors.length > 0 ? colors : [[0, 25, 255] as RGB];
   const leds = new Array<RGB>(ledCount);
-  const segmentLength = ledCount / usableColors.length;
 
   for (let led = 0; led < ledCount; led++) {
     const colorIndex = Math.min(
@@ -124,28 +119,6 @@ export function ledsPaletteGradient(
       Math.floor(led * usableColors.length / ledCount),
     );
     leds[led] = [...usableColors[colorIndex]] as RGB;
-  }
-
-  if (gradientSize <= 0 || usableColors.length === 1) return leds;
-  for (let boundaryIndex = 1; boundaryIndex < usableColors.length; boundaryIndex++) {
-    const boundary = boundaryIndex * segmentLength;
-    const start = Math.max(0, Math.ceil(boundary - gradientSize));
-    const end = Math.min(ledCount - 1, Math.floor(boundary + gradientSize - 1));
-    const left = usableColors[boundaryIndex - 1];
-    const right = usableColors[boundaryIndex];
-
-    for (let led = start; led <= end; led++) {
-      const mix = clamp(
-        (led + 0.5 - (boundary - gradientSize)) / (gradientSize * 2),
-        0,
-        1,
-      );
-      leds[led] = [
-        Math.round(left[0] * (1 - mix) + right[0] * mix),
-        Math.round(left[1] * (1 - mix) + right[1] * mix),
-        Math.round(left[2] * (1 - mix) + right[2] * mix),
-      ];
-    }
   }
   return leds;
 }

@@ -30,7 +30,6 @@ export const MUSIC = {
   paletteColorCount: 12,
   minimumColorProportion: 0.06,
   paletteSaturation: 1.5,
-  gradientSize: 16,
   coverTransitionMs: 1_200,
   idlePulseMinimum: 0.7,
   idlePulsePeriodMs: 2_000,
