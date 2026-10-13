@@ -43,7 +43,7 @@ export const MUSIC = {
 
 export const SCREEN_CAPTURE = {
   source: 'desktop',
-  // monitor: '\\\\.\\DISPLAY2',
+  monitor: '\\\\.\\DISPLAY2',
 } as const;
 
 export const DEBUG = {

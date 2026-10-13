@@ -78,8 +78,8 @@ export class ScreenCapture {
     return primary;
   }
 
-  async start(): Promise<void> {
-    if (this.process) return;
+  async start(): Promise<MonitorInfo> {
+    if (this.process) throw new Error('Screen capture is already running');
     const monitor = await ScreenCapture.getMonitor(this.options.monitor);
 
     const filter = `scale=${this.options.ledCount}:1:flags=area`;
@@ -120,6 +120,7 @@ export class ScreenCapture {
       this.process = undefined;
       if (code !== 0 && code !== null) console.error(`FFmpeg exited with code ${code}`);
     });
+    return monitor;
   }
 
   stop(): void {

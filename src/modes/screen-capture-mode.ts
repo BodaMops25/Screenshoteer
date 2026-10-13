@@ -17,8 +17,8 @@ export class ScreenCaptureMode implements AppModeController {
       frameRate: this.context.frameRate,
       onFrame: (frame) => this.context.sendFrame(frame),
     });
-    await this.capture.start();
-    this.context.dashboard.set('Capture', SCREEN_CAPTURE.monitor);
+    const monitor = await this.capture.start();
+    this.context.dashboard.set('Capture', monitor.name);
   }
 
   stop(): void {
