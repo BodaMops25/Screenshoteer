@@ -1,13 +1,26 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import {
+  execFile,
+  spawn,
+  type ChildProcessWithoutNullStreams,
+} from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
+
+export interface MonitorInfo {
+  name: string;
+  primary: boolean;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 export interface ScreenCaptureOptions {
   ledCount: number;
   frameRate: number;
   source: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  monitor?: string;
   onFrame: (frame: Buffer) => void;
 }
 
@@ -20,8 +33,54 @@ export class ScreenCapture {
     this.options = options;
   }
 
-  start(): void {
+  static async getMonitors(): Promise<MonitorInfo[]> {
+    const script = [
+      'Add-Type -AssemblyName System.Windows.Forms',
+      '$screens = @([System.Windows.Forms.Screen]::AllScreens | ForEach-Object {',
+      '[PSCustomObject]@{',
+      'name = $_.DeviceName;',
+      'primary = $_.Primary;',
+      'x = $_.Bounds.X;',
+      'y = $_.Bounds.Y;',
+      'width = $_.Bounds.Width;',
+      'height = $_.Bounds.Height',
+      '}',
+      '})',
+      'ConvertTo-Json -Compress -InputObject $screens',
+    ].join('\n');
+    const { stdout } = await execFileAsync(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', script],
+      { windowsHide: true },
+    );
+    const monitors = JSON.parse(stdout.trim()) as MonitorInfo[] | MonitorInfo;
+    return Array.isArray(monitors) ? monitors : [monitors];
+  }
+
+  static async getMonitor(name?: string): Promise<MonitorInfo> {
+    const monitors = await ScreenCapture.getMonitors();
+    const primary = monitors.find((candidate) => candidate.primary) ?? monitors[0];
+    if (!primary) throw new Error('Windows did not report any monitors');
+
+    const requestedName = name?.trim();
+    if (!requestedName) return primary;
+
+    const monitor = monitors.find((candidate) => (
+      candidate.name.toUpperCase() === requestedName.toUpperCase()
+    ));
+    if (monitor) return monitor;
+
+    const available = monitors.map((candidate) => candidate.name).join(', ');
+    console.error(
+      `Monitor "${requestedName}" not found. Using primary monitor "${primary.name}". `
+        + `Available monitors: ${available}`,
+    );
+    return primary;
+  }
+
+  async start(): Promise<void> {
     if (this.process) return;
+    const monitor = await ScreenCapture.getMonitor(this.options.monitor);
 
     const filter = `scale=${this.options.ledCount}:1:flags=area`;
 
@@ -30,9 +89,9 @@ export class ScreenCapture {
       '-flags', 'low_delay',
       '-framerate', this.options.frameRate.toString(),
       '-f', 'gdigrab',
-      '-offset_x', this.options.x.toString(),
-      '-offset_y', this.options.y.toString(),
-      '-video_size', `${this.options.width}x${this.options.height}`,
+      '-offset_x', monitor.x.toString(),
+      '-offset_y', monitor.y.toString(),
+      '-video_size', `${monitor.width}x${monitor.height}`,
       '-i', this.options.source,
       '-vf', filter,
       '-f', 'rawvideo',
@@ -68,4 +127,5 @@ export class ScreenCapture {
     this.process = undefined;
     this.pending = Buffer.alloc(0);
   }
+
 }

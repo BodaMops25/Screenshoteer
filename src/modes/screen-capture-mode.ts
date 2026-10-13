@@ -10,15 +10,15 @@ export class ScreenCaptureMode implements AppModeController {
     this.context = context;
   }
 
-  start(): void {
+  async start(): Promise<void> {
     this.capture = new ScreenCapture({
       ...SCREEN_CAPTURE,
       ledCount: this.context.ledCount,
       frameRate: this.context.frameRate,
       onFrame: (frame) => this.context.sendFrame(frame),
     });
-    this.capture.start();
-    this.context.dashboard.set('Capture', SCREEN_CAPTURE.source);
+    await this.capture.start();
+    this.context.dashboard.set('Capture', SCREEN_CAPTURE.monitor);
   }
 
   stop(): void {

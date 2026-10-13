@@ -9,9 +9,9 @@ Music listening mode:
 - all strip work as spectrum for 0 - 20kHz audio flow ✔
 
 Screen recording mode:
-- record screen, proccess to n-leds strip and send to wled
-- realtime adjustable saturation, brightness, contrast, gamma, blur
-- addjustable what screen to record
+- record screen, proccess to n-leds strip and send to wled ✔
+- realtime adjustable saturation, brightness, contrast, gamma, blur ✔
+- addjustable what screen to record ✔
 
 Windows tray feature:
 - proccess must hide to windows tray
@@ -24,3 +24,6 @@ Global features:
 - process must listen for wled connection and autoattach if lost
 - debug websocket html page simulation to see what leds data will return to wled
 - some console statistics 
+
+BUGS:
+- in music mode while transition, different colors transit in different time

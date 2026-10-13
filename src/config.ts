@@ -2,7 +2,7 @@ export type AppMode = 'music' | 'screen-capture';
 export type MusicAudioMode = 'bands' | 'spectrum' | 'current';
 export type MusicColorMode = 'main' | 'palette';
 
-export const MODE: AppMode = 'music';
+export const MODE: AppMode = 'screen-capture';
 
 export const WLED = {
   host: '192.168.1.18',
@@ -43,10 +43,7 @@ export const MUSIC = {
 
 export const SCREEN_CAPTURE = {
   source: 'desktop',
-  x: 0,
-  y: 0,
-  width: 2560,
-  height: 1440,
+  // monitor: '\\\\.\\DISPLAY2',
 } as const;
 
 export const DEBUG = {
