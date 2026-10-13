@@ -1,8 +1,16 @@
-import { DEBUG, MODE, OUTPUT, WLED } from './config.ts';
+import {
+  DEBUG,
+  MODE,
+  MUSIC,
+  OUTPUT,
+  WLED,
+  type AppMode,
+  type MusicAudioMode,
+} from './config.ts';
 import { Dashboard } from './dashboard.ts';
 import { MusicMode } from './modes/music-mode.ts';
 import { ScreenCaptureMode } from './modes/screen-capture-mode.ts';
-import type { AppModeController } from './modes/types.ts';
+import type { AppModeController, ModeContext } from './modes/types.ts';
 import { OutputProcessor, type OutputAdjustmentName } from './output-processor.ts';
 import { SimulationServer } from './simulation-server.ts';
 import { WLEDDdp } from './WLED_DDP.ts';
@@ -15,6 +23,10 @@ const dashboard = new Dashboard(DEBUG.logs);
 const simulation = new SimulationServer(DEBUG.simulation, DEBUG.simulationPort);
 const abortController = new AbortController();
 let modeController: AppModeController | undefined;
+let modeContext: ModeContext | undefined;
+let currentMode: AppMode | undefined;
+let musicAudioMode: MusicAudioMode = MUSIC.audioMode;
+let modeSwitch = Promise.resolve();
 let shuttingDown = false;
 const outputProcessor = new OutputProcessor({
   brightness: OUTPUT.brightness,
@@ -30,7 +42,6 @@ const wled = new WLEDDdp({
 });
 
 async function start(): Promise<void> {
-  dashboard.set('Mode', MODE);
   dashboard.set('WLED', DEBUG.noWled ? 'disabled' : 'connecting');
 
   let ledCount: number = DEBUG.fallbackLedCount;
@@ -66,17 +77,41 @@ async function start(): Promise<void> {
     if (!DEBUG.noWled) wled.sendRaw(frame, ledOffset * 3);
   };
 
-  const context = {
+  modeContext = {
     ledCount,
     frameRate: OUTPUT.fps,
     dashboard,
     sendFrame,
   };
 
-  modeController = MODE === 'music'
-    ? new MusicMode(context)
-    : new ScreenCaptureMode(context);
-  await modeController.start();
+  await switchMode(MODE);
+}
+
+async function switchMode(mode: AppMode): Promise<void> {
+  if (!modeContext) throw new Error('Application is not ready to switch modes');
+  if (mode === currentMode) return;
+
+  modeController?.stop();
+  modeController = undefined;
+  currentMode = undefined;
+  const nextController = mode === 'music'
+    ? new MusicMode(modeContext, musicAudioMode)
+    : new ScreenCaptureMode(modeContext);
+  try {
+    await nextController.start();
+  } catch (error) {
+    nextController.stop();
+    throw error;
+  }
+  modeController = nextController;
+  currentMode = mode;
+  dashboard.set('Mode', mode);
+}
+
+function queueModeSwitch(mode: AppMode): void {
+  modeSwitch = modeSwitch
+    .then(() => switchMode(mode))
+    .catch((error) => console.error(`Could not switch to ${mode} mode:`, error));
 }
 
 function shutdown(exitCode = 0): void {
@@ -105,6 +140,22 @@ process.stdin.on('data', (command) => {
       console.log(outputProcessor.get());
       continue;
     }
+    const modeMatch = /^mode\s+([01])$/.exec(input);
+    if (modeMatch) {
+      queueModeSwitch(modeMatch[1] === '1' ? 'music' : 'screen-capture');
+      continue;
+    }
+    const audioModeMatch = /^audiomode\s+([012])$/.exec(input);
+    if (audioModeMatch) {
+      const audioModes: MusicAudioMode[] = ['current', 'bands', 'spectrum'];
+      musicAudioMode = audioModes[Number(audioModeMatch[1])];
+      if (modeController instanceof MusicMode) {
+        modeController.setAudioMode(musicAudioMode);
+      } else {
+        dashboard.set('Audio mode', musicAudioMode);
+      }
+      continue;
+    }
 
     const match = /^(b|c|s|g|blr)\s+(-?(?:\d+(?:\.\d*)?|\.\d+))$/.exec(input);
     if (match) {
@@ -120,7 +171,7 @@ process.stdin.on('data', (command) => {
       dashboard.set(name[0].toUpperCase() + name.slice(1), value);
       continue;
     }
-    console.log('Commands: b <brightness>, c <contrast>, s <saturation>, g <gamma>, blr <blur>, settings, quit');
+    console.log('Commands: mode <0 screen|1 music>, audiomode <0 current|1 bands|2 spectrum>, b <brightness>, c <contrast>, s <saturation>, g <gamma>, blr <blur>, settings, quit');
   }
 });
 

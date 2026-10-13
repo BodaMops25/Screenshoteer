@@ -16,7 +16,7 @@ export class AudioMeter {
   private readonly onAudioUpdate: (value: number) => void;
   private readonly onBandsUpdate: (bands: AudioBands) => void;
   private readonly onSpectrumUpdate?: (spectrum: number[]) => void;
-  private readonly frequencyAnalysisEnabled: boolean;
+  private frequencyAnalysisEnabled: boolean;
   private readonly spectrumSize: number;
   private readonly fft = new FFT(AudioMeter.FFT_SIZE);
   private readonly fftInput = new Array<number>(AudioMeter.FFT_SIZE).fill(0);
@@ -75,6 +75,11 @@ export class AudioMeter {
     this.bandRanges = this.createLogFrequencyRanges(normalizedCount, 20, 12_000);
     this.bandAverages = new Array<number>(normalizedCount).fill(0);
     this.smoothedBands = new Array<number>(normalizedCount).fill(0);
+  }
+
+  setFrequencyAnalysisEnabled(enabled: boolean): void {
+    this.frequencyAnalysisEnabled = enabled;
+    this.fftInputIndex = 0;
   }
 
   push(chunk: Buffer): void {

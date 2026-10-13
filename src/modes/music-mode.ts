@@ -1,7 +1,7 @@
 import { getColor, getPalette, type Color } from 'colorthief';
 import loopbackCapture from 'loopback-capture';
 import { AudioMeter, type AudioBands } from '../audio-meter.ts';
-import { MUSIC } from '../config.ts';
+import { MUSIC, type MusicAudioMode } from '../config.ts';
 import { MediaMonitor } from '../media-monitor.ts';
 import {
   AudioNormalizer,
@@ -22,6 +22,7 @@ export class MusicMode implements AppModeController {
   private readonly normalizer = new AudioNormalizer();
   private readonly media: MediaMonitor;
   private readonly meter: AudioMeter;
+  private audioMode: MusicAudioMode;
   private frameTimer?: NodeJS.Timeout;
   private isPlaying = false;
   private rawAudioLevel = 0;
@@ -33,8 +34,9 @@ export class MusicMode implements AppModeController {
   private targetLeds: RGB[];
   private transitionStartedAt = 0;
 
-  constructor(context: ModeContext) {
+  constructor(context: ModeContext, audioMode: MusicAudioMode = MUSIC.audioMode) {
     this.context = context;
+    this.audioMode = audioMode;
     const initial = ledsPaletteSegments([[0, 25, 255]], context.ledCount);
     this.currentLeds = initial;
     this.transitionFrom = initial;
@@ -53,22 +55,25 @@ export class MusicMode implements AppModeController {
         this.rawAudioLevel = value;
         this.normalizedAudioLevel = this.normalizer.update(value);
       },
-      onBandsUpdate: MUSIC.audioMode === 'bands'
-        ? (bands) => { this.bands = bands; }
-        : undefined,
-      onSpectrumUpdate: MUSIC.audioMode === 'spectrum'
-        ? (spectrum) => { this.spectrum = spectrum; }
-        : undefined,
+      onBandsUpdate: (bands) => { this.bands = bands; },
+      onSpectrumUpdate: (spectrum) => { this.spectrum = spectrum; },
       bandCount: MUSIC.paletteColorCount,
-      spectrumSize: MUSIC.audioMode === 'spectrum' ? context.ledCount : 0,
+      spectrumSize: context.ledCount,
     });
+    this.meter.setFrequencyAnalysisEnabled(audioMode !== 'current');
   }
 
   start(): void {
     this.media.start();
     this.capture.startSystemAudio((chunk: Buffer) => this.meter.push(chunk));
     this.frameTimer = setInterval(() => this.renderFrame(), 1000 / this.context.frameRate);
-    this.context.dashboard.set('Audio mode', MUSIC.audioMode);
+    this.context.dashboard.set('Audio mode', this.audioMode);
+  }
+
+  setAudioMode(mode: MusicAudioMode): void {
+    this.audioMode = mode;
+    this.meter.setFrequencyAnalysisEnabled(mode !== 'current');
+    this.context.dashboard.set('Audio mode', mode);
   }
 
   stop(): void {
@@ -100,10 +105,8 @@ export class MusicMode implements AppModeController {
         .map((color) => changeRgbSaturation(color.array(), MUSIC.paletteSaturation));
 
       if (colors.length === 0) return;
-      if (MUSIC.audioMode === 'bands') {
-        this.meter.setBandCount(colors.length);
-        this.bands = new Array<number>(colors.length).fill(0);
-      }
+      this.meter.setBandCount(colors.length);
+      this.bands = new Array<number>(colors.length).fill(0);
       this.transitionFrom = this.getTransitionedLeds();
       this.targetLeds = ledsPaletteSegments(colors, this.context.ledCount);
       this.transitionStartedAt = performance.now();
@@ -136,11 +139,11 @@ export class MusicMode implements AppModeController {
       const brightness = MUSIC.idlePulseMinimum
         + pulseRange * ((Math.sin(phase) + 1) / 2);
       output = baseLeds.map((led) => changeRgbAbsoluteBrightness(led, brightness));
-    } else if (MUSIC.audioMode === 'current') {
+    } else if (this.audioMode === 'current') {
       output = baseLeds.map((led) => (
         changeRgbAbsoluteBrightness(led, this.normalizedAudioLevel)
       ));
-    } else if (MUSIC.audioMode === 'spectrum') {
+    } else if (this.audioMode === 'spectrum') {
       output = baseLeds.map((led, index) => (
         changeRgbAbsoluteBrightness(led, this.spectrum[index] ?? 0)
       ));
