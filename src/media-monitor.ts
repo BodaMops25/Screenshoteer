@@ -6,21 +6,21 @@ import {
 
 export interface MediaMonitorOptions {
   onCoverChange?: (coverBinary: Buffer) => void | Promise<void>;
-  onStoped?: () => void;
+  onStopped?: () => void;
   onPlaying?: () => void;
 }
 
 export class MediaMonitor {
   private readonly onCoverChange: (coverBinary: Buffer) => void | Promise<void>;
   private readonly onPlaying?: () => void;
-  private readonly onStoped?: () => void;
+  private readonly onStopped?: () => void;
   private monitor: SMTCMonitor | null = null;
   private coverHash: string | null = null;
 
-  constructor({ onCoverChange, onStoped, onPlaying }: MediaMonitorOptions = {}) {
-    this.onCoverChange = onCoverChange!;
+  constructor({ onCoverChange, onStopped, onPlaying }: MediaMonitorOptions = {}) {
+    this.onCoverChange = onCoverChange ?? (() => {});
     this.onPlaying = onPlaying;
-    this.onStoped = onStoped;
+    this.onStopped = onStopped;
   }
 
   start(): void {
@@ -28,7 +28,7 @@ export class MediaMonitor {
     const refresh = (): void => { void this.emitCurrent(); };
     this.monitor.on('session-media-changed', refresh);
     this.monitor.on('session-playback-changed', (_appId: string, playbackInfo: PlaybackInfo) => {
-      if ((playbackInfo.playbackStatus === 3 || playbackInfo.playbackStatus === 5) && this.onStoped) this.onStoped();
+      if ((playbackInfo.playbackStatus === 3 || playbackInfo.playbackStatus === 5) && this.onStopped) this.onStopped();
       else if (playbackInfo.playbackStatus === 4 && this.onPlaying) this.onPlaying();
       else refresh();
     });
@@ -41,6 +41,14 @@ export class MediaMonitor {
   async emitCurrent(): Promise<void> {
     try {
       const session = SMTCMonitor.getCurrentMediaSession();
+      if (!session) {
+        this.onStopped?.();
+        return;
+      }
+
+      if (session.playback.playbackStatus === 4) this.onPlaying?.();
+      else this.onStopped?.();
+
       const thumbnailBinary = session?.media.thumbnail;
 
       if (!thumbnailBinary) return;
@@ -49,7 +57,7 @@ export class MediaMonitor {
       if (hash === this.coverHash) return;
 
       this.coverHash = hash;
-      this.onCoverChange(thumbnailBinary);
+      await this.onCoverChange(thumbnailBinary);
     } catch (error) {
       console.error(error);
     }

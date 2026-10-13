@@ -1,0 +1,26 @@
+Music listening mode:
+- get color palette from media cover(thumbnail)
+- adjustable colors count
+- adjustable blur level to make gradient between color sectors
+- pulsing brightness idle behavior if no music
+- smooth color transition when cover change
+- get current audio level as brightness for whole led strip
+- split audio frequncies to ranges synced to colors count and each range has own volume level
+- all strip work as spectrum for 0 - 20kHz audio flow
+
+Screen recording mode:
+- record screen, proccess to n-leds strip and send to wled
+- realtime adjustable saturation, brightness, contrast, gamma, blur
+- addjustable what screen to record
+
+Windows tray feature:
+- proccess must hide to windows tray
+- context menu:
+- - open webpage with settings
+- - change mode (music | screen capture)
+- - shutdown
+
+Global features:
+- process must listen for wled connection and autoattach if lost
+- debug websocket html page simulation to see what leds data will return to wled
+- some console statistics 
