@@ -106,14 +106,21 @@ process.stdin.on('data', (command) => {
       continue;
     }
 
-    const match = /^set\s+(brightness|contrast|saturation|gamma|blur)\s+(-?\d+(?:\.\d+)?)$/.exec(input);
+    const match = /^(b|c|s|g|blr)\s+(-?(?:\d+(?:\.\d*)?|\.\d+))$/.exec(input);
     if (match) {
-      const name = match[1] as OutputAdjustmentName;
+      const names: Record<string, OutputAdjustmentName> = {
+        b: 'brightness',
+        c: 'contrast',
+        s: 'saturation',
+        g: 'gamma',
+        blr: 'blur',
+      };
+      const name = names[match[1]];
       const value = outputProcessor.set(name, Number(match[2]));
       dashboard.set(name[0].toUpperCase() + name.slice(1), value);
       continue;
     }
-    console.log('Commands: set <brightness|contrast|saturation|gamma|blur> <value>, settings, quit');
+    console.log('Commands: b <brightness>, c <contrast>, s <saturation>, g <gamma>, blr <blur>, settings, quit');
   }
 });
 

@@ -14,9 +14,14 @@ export const WLED = {
 
 export const OUTPUT = {
   fps: 60,
-  brightness: 0,
+  /* brightness: 0,
   contrast: 1,
   saturation: 3,
+  gamma: 1,
+  blur: 0, */
+  brightness: 0,
+  contrast: 1,
+  saturation: 1,
   gamma: 1,
   blur: 0,
   ledBlackPoints: [24, 24, 24] as const,
