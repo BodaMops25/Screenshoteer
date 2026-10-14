@@ -11,6 +11,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(3) };
     private readonly SemaphoreSlim nodeStartLock = new(1, 1);
+    private readonly Icon trayImage;
     private readonly NotifyIcon trayIcon;
     private readonly ToolStripMenuItem musicModeItem;
     private readonly ToolStripMenuItem screenModeItem;
@@ -21,6 +22,11 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     public TrayApplicationContext()
     {
+        trayImage = new Icon(Path.Combine(
+            AppContext.BaseDirectory,
+            "assets",
+            "screenshoteer.ico"
+        ));
         musicModeItem = MenuItem("Music", async () => await SetModeAsync("music"));
         screenModeItem = MenuItem("Screen capture", async () => await SetModeAsync("screen-capture"));
         currentAudioItem = MenuItem("Current", async () => await SetAudioModeAsync("current"));
@@ -43,7 +49,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
         trayIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = trayImage,
             Text = "Screenshoteer",
             ContextMenuStrip = menu,
             Visible = true,
@@ -63,6 +69,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     {
         trayIcon.Visible = false;
         trayIcon.Dispose();
+        trayImage.Dispose();
         http.Dispose();
         nodeStartLock.Dispose();
         nodeProcess?.Dispose();

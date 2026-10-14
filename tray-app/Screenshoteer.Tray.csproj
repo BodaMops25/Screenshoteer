@@ -8,4 +8,14 @@
     <AssemblyName>Screenshoteer.Tray</AssemblyName>
     <RootNamespace>Screenshoteer.Tray</RootNamespace>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <ApplicationIcon>assets\screenshoteer.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="assets\screenshoteer.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>
