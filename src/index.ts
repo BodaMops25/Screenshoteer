@@ -19,6 +19,7 @@ import {
   type OutputAdjustments,
 } from './output-processor.ts';
 import { SimulationServer } from './simulation-server.ts';
+import { SettingsServer } from './settings-server.ts';
 import { WLEDDdp } from './WLED_DDP.ts';
 
 if (process.platform !== 'win32') {
@@ -27,6 +28,7 @@ if (process.platform !== 'win32') {
 
 const dashboard = new Dashboard(DEBUG.logs);
 const simulation = new SimulationServer(DEBUG.simulation, DEBUG.simulationPort);
+const settingsServer = new SettingsServer(8090, restart);
 const abortController = new AbortController();
 let modeController: AppModeController | undefined;
 let modeContext: ModeContext | undefined;
@@ -49,6 +51,7 @@ const wled = new WLEDDdp({
 });
 
 async function start(): Promise<void> {
+  await settingsServer.start();
   dashboard.set('WLED', DEBUG.noWled ? 'disabled' : 'connecting');
 
   let ledCount: number = DEBUG.fallbackLedCount;
@@ -144,9 +147,14 @@ function shutdown(exitCode = 0): void {
   abortController.abort();
   modeController?.stop();
   simulation.stop();
+  settingsServer.stop();
   wled.stop();
   dashboard.stop();
   process.exit(exitCode);
+}
+
+function restart(): void {
+  shutdown(75);
 }
 
 process.once('SIGINT', () => shutdown());

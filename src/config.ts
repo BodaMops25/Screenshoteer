@@ -1,80 +1,52 @@
-export type AppMode = 'music' | 'screen-capture';
-export type MusicAudioMode = 'bands' | 'spectrum' | 'current';
-export type MusicColorMode = 'main' | 'palette';
-export type OutputProfileName =
-  | 'screen-capture'
-  | 'music-current'
-  | 'music-bands'
-  | 'music-spectrum';
+import {
+  loadWebSettings,
+  type AppMode,
+  type MusicAudioMode,
+} from './settings-store.ts';
 
-export const MODE: AppMode = 'screen-capture';
+export type { AppMode, MusicAudioMode, OutputProfileName } from './settings-store.ts';
+export type MusicColorMode = 'main' | 'palette';
+const SETTINGS = loadWebSettings();
+
+export const MODE: AppMode = SETTINGS.mode;
 
 export const WLED = {
-  host: '192.168.1.18',
-  port: 4048,
+  host: SETTINGS.wled.host,
+  port: SETTINGS.wled.port,
   reconnectIntervalMs: 3_000,
   healthCheckIntervalMs: 3_000,
   healthCheckTimeoutMs: 1_500,
 } as const;
 
 export const OUTPUT = {
-  fps: 60,
-  ledBlackPoints: [24, 24, 24] as const,
+  fps: SETTINGS.output.fps,
+  ledBlackPoints: SETTINGS.output.ledBlackPoints,
   ledLowRangeGammas: [1.5, 1.5, 1.5] as const,
-  ledMatchPoint: 128,
+  ledMatchPoint: SETTINGS.output.ledMatchPoint,
 } as const;
 
-export const OUTPUT_PROFILES = {
-  'screen-capture': {
-    brightness: 0,
-    contrast: 1,
-    saturation: 1,
-    gamma: 1,
-    blur: 0,
-  },
-  'music-current': {
-    brightness: 0,
-    contrast: 1,
-    saturation: 1,
-    gamma: 1,
-    blur: 0,
-  },
-  'music-bands': {
-    brightness: 0,
-    contrast: 1,
-    saturation: 1,
-    gamma: 1,
-    blur: 0,
-  },
-  'music-spectrum': {
-    brightness: 0,
-    contrast: 1,
-    saturation: 1,
-    gamma: 1,
-    blur: 0,
-  },
-} as const;
+export const OUTPUT_PROFILES = SETTINGS.profiles;
 
 export const MUSIC = {
-  audioMode: 'spectrum' as MusicAudioMode,
+  audioMode: SETTINGS.audioMode as MusicAudioMode,
   colorMode: 'palette' as MusicColorMode,
   paletteColorCount: 12,
   minimumColorProportion: 0.06,
   paletteSaturation: 1.5,
-  coverTransitionMs: 1_200,
-  idlePulseMinimum: 0.8,
-  idlePulsePeriodMs: 2_000,
+  coverTransitionMs: SETTINGS.music.coverTransitionMs,
+  idlePulseMinimum: SETTINGS.music.idlePulseMinimum,
+  idlePulsePeriodMs: SETTINGS.music.idlePulsePeriodMs,
 } as const;
 
 export const SCREEN_CAPTURE = {
   source: 'desktop',
-  monitor: '\\\\.\\DISPLAY2',
+  monitor: SETTINGS.monitor,
 } as const;
 
 export const DEBUG = {
   logs: true,
-  simulation: true,
-  simulationPort: 8080,
-  noWled: true,
-  fallbackLedCount: 100,
+  simulation: SETTINGS.debug.simulation,
+  simulationPort: SETTINGS.debug.simulationPort,
+  noWled: SETTINGS.debug.noWled,
+  fallbackLedCount: SETTINGS.debug.fallbackLedCount,
 } as const;

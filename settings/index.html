@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Screenshoteer Settings</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b10;
+      --panel: #111722;
+      --panel-2: #171f2c;
+      --line: #293447;
+      --text: #f4f7fb;
+      --muted: #94a3b8;
+      --accent: #53e3b0;
+      --accent-dark: #092d24;
+      --danger: #ff7b86;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 85% 0%, rgba(53, 112, 255, .14), transparent 31rem),
+        radial-gradient(circle at 0% 30%, rgba(83, 227, 176, .09), transparent 28rem),
+        var(--bg);
+    }
+    .shell { width: min(1160px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 72px; }
+    header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+    .eyebrow { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 7px 0 5px; font-size: clamp(30px, 5vw, 52px); line-height: 1; letter-spacing: -.045em; }
+    header p { margin: 0; color: var(--muted); }
+    .save {
+      border: 0;
+      border-radius: 12px;
+      padding: 13px 22px;
+      color: #04120e;
+      background: var(--accent);
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 10px 28px rgba(83, 227, 176, .18);
+    }
+    .save:hover { filter: brightness(1.08); }
+    .save:disabled { opacity: .55; cursor: wait; }
+    .actions { display: flex; gap: 10px; }
+    .header-button { min-height: 45px; }
+    .status {
+      display: none;
+      margin: 0 0 20px;
+      padding: 12px 15px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--muted);
+      background: rgba(17, 23, 34, .92);
+    }
+    .status.visible { display: block; }
+    .status.success { color: var(--accent); border-color: rgba(83, 227, 176, .35); }
+    .status.error { color: var(--danger); border-color: rgba(255, 123, 134, .35); }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
+    .card {
+      grid-column: span 6;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(23, 31, 44, .95), rgba(14, 19, 28, .95));
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .2);
+    }
+    .card.wide { grid-column: 1 / -1; }
+    .card h2 { margin: 0 0 5px; font-size: 18px; letter-spacing: -.01em; }
+    .card > p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+    .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+    .field { display: grid; gap: 7px; min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    label, .label { color: #cbd5e1; font-size: 12px; font-weight: 700; }
+    input, select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      outline: none;
+      padding: 9px 11px;
+      color: var(--text);
+      background: #0c111a;
+      font: inherit;
+    }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(83, 227, 176, .1); }
+    input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: var(--accent); }
+    .check { display: flex; align-items: center; gap: 10px; min-height: 42px; }
+    .black-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .black-points label { display: grid; gap: 6px; }
+    .black-points label:nth-child(1) { color: #ff8b93; }
+    .black-points label:nth-child(2) { color: #72e5a6; }
+    .black-points label:nth-child(3) { color: #84aaff; }
+    .monitor-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .secondary {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0 14px;
+      color: var(--text);
+      background: var(--panel-2);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .profiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .profile { padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: rgba(8, 11, 16, .44); }
+    .profile h3 { margin: 0 0 14px; font-size: 14px; color: var(--accent); }
+    .profile .field + .field { margin-top: 10px; }
+    .hint { color: var(--muted); font-size: 11px; }
+    footer { margin-top: 20px; color: var(--muted); font-size: 12px; text-align: center; }
+    @media (max-width: 900px) {
+      .profiles { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 700px) {
+      .shell { width: min(100% - 20px, 1160px); padding-top: 24px; }
+      header { align-items: stretch; flex-direction: column; }
+      .actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .save { width: 100%; }
+      .card { grid-column: 1 / -1; padding: 18px; }
+      .profiles, .fields { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">LED control system</div>
+        <h1>Screenshoteer</h1>
+        <p>Configure capture, audio response, output correction, and WLED.</p>
+      </div>
+      <div class="actions">
+        <button class="secondary header-button" form="settings-form" name="action" value="restart" type="submit">Save &amp; restart</button>
+        <button class="save" form="settings-form" name="action" value="save" type="submit">Save settings</button>
+      </div>
+    </header>
+
+    <div id="status" class="status" role="status"></div>
+
+    <form id="settings-form" class="grid">
+      <section class="card">
+        <h2>WLED connection</h2>
+        <p>Network destination used for JSON control and DDP frames.</p>
+        <div class="fields">
+          <div class="field"><label for="wled-host">Host</label><input id="wled-host" autocomplete="off" required></div>
+          <div class="field"><label for="wled-port">DDP port</label><input id="wled-port" type="number" min="1" max="65535" required></div>
+          <label class="check field full"><input id="no-wled" type="checkbox"> Disable physical WLED output</label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Application mode</h2>
+        <p>Choose the startup source and music analysis strategy.</p>
+        <div class="fields">
+          <div class="field"><label for="mode">Mode</label><select id="mode"><option value="screen-capture">Screen capture</option><option value="music">Music</option></select></div>
+          <div class="field"><label for="audio-mode">Audio mode</label><select id="audio-mode"><option value="current">Current level</option><option value="bands">Color bands</option><option value="spectrum">LED spectrum</option></select></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Output</h2>
+        <p>Frame rate and shared low-level LED calibration.</p>
+        <div class="fields">
+          <div class="field"><label for="fps">Frames per second</label><input id="fps" type="number" min="1" max="240" required></div>
+          <div class="field"><label for="match-point">LED match point</label><input id="match-point" type="number" min="1" max="255" required></div>
+          <div class="field full">
+            <span class="label">LED black points</span>
+            <div class="black-points">
+              <label>Red<input id="black-r" type="number" min="0" max="254" required></label>
+              <label>Green<input id="black-g" type="number" min="0" max="254" required></label>
+              <label>Blue<input id="black-b" type="number" min="0" max="254" required></label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Screen capture</h2>
+        <p>Use an exact Windows name such as <code>\\.\DISPLAY2</code>, or leave blank for primary.</p>
+        <div class="field">
+          <label for="monitor">Monitor</label>
+          <div class="monitor-row"><input id="monitor" list="monitor-list" autocomplete="off"><button id="detect-monitors" class="secondary" type="button">Detect</button></div>
+          <datalist id="monitor-list"></datalist>
+          <span id="monitor-hint" class="hint">Monitor positions are resolved when capture starts.</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Music behavior</h2>
+        <p>Timing for cover changes and the idle breathing animation.</p>
+        <div class="fields">
+          <div class="field"><label for="cover-transition">Cover transition (ms)</label><input id="cover-transition" type="number" min="0" max="60000" required></div>
+          <div class="field"><label for="idle-minimum">Idle pulse minimum</label><input id="idle-minimum" type="number" min="0" max="1" step="0.01" required></div>
+          <div class="field full"><label for="idle-period">Idle pulse period (ms)</label><input id="idle-period" type="number" min="100" max="60000" required></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Debug & simulation</h2>
+        <p>Browser simulation output and fallback behavior without WLED.</p>
+        <div class="fields">
+          <label class="check"><input id="simulation" type="checkbox"> Enable simulation</label>
+          <div class="field"><label for="simulation-port">Simulation port</label><input id="simulation-port" type="number" min="1" max="65535" required></div>
+          <div class="field full"><label for="fallback-leds">Fallback LED count</label><input id="fallback-leds" type="number" min="1" max="100000" required></div>
+        </div>
+      </section>
+
+      <section class="card wide">
+        <h2>Color correction profiles</h2>
+        <p>Each source mode keeps independent final-output processing values.</p>
+        <div id="profiles" class="profiles"></div>
+      </section>
+    </form>
+    <footer>Settings are stored locally in <code>settings.json</code>. Restart Screenshoteer after saving.</footer>
+  </main>
+
+  <script>
+    const profileDefinitions = [
+      ['screen-capture', 'Screen capture'],
+      ['music-current', 'Music · current'],
+      ['music-bands', 'Music · bands'],
+      ['music-spectrum', 'Music · spectrum'],
+    ];
+    const correctionFields = [
+      ['brightness', 'Brightness', -1, 1, .01],
+      ['contrast', 'Contrast', 0, 4, .01],
+      ['saturation', 'Saturation', 0, 4, .01],
+      ['gamma', 'Gamma', .1, 10, .01],
+      ['blur', 'Blur', 0, 100, 1],
+    ];
+    const byId = (id) => document.getElementById(id);
+    const status = byId('status');
+    const form = byId('settings-form');
+
+    function profileInputId(profile, setting) {
+      return `profile-${profile}-${setting}`;
+    }
+
+    function buildProfiles() {
+      const root = byId('profiles');
+      for (const [profile, title] of profileDefinitions) {
+        const card = document.createElement('div');
+        card.className = 'profile';
+        const heading = document.createElement('h3');
+        heading.textContent = title;
+        card.append(heading);
+        for (const [setting, label, min, max, step] of correctionFields) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'field';
+          wrapper.innerHTML = `<label for="${profileInputId(profile, setting)}">${label}</label><input id="${profileInputId(profile, setting)}" type="number" min="${min}" max="${max}" step="${step}" required>`;
+          card.append(wrapper);
+        }
+        root.append(card);
+      }
+    }
+
+    function showStatus(message, type = '') {
+      status.textContent = message;
+      status.className = `status visible ${type}`;
+    }
+
+    function setValue(id, value) { byId(id).value = value; }
+
+    function populate(settings) {
+      setValue('wled-host', settings.wled.host);
+      setValue('wled-port', settings.wled.port);
+      byId('no-wled').checked = settings.debug.noWled;
+      setValue('mode', settings.mode);
+      setValue('audio-mode', settings.audioMode);
+      setValue('fps', settings.output.fps);
+      setValue('match-point', settings.output.ledMatchPoint);
+      setValue('black-r', settings.output.ledBlackPoints[0]);
+      setValue('black-g', settings.output.ledBlackPoints[1]);
+      setValue('black-b', settings.output.ledBlackPoints[2]);
+      setValue('monitor', settings.monitor);
+      setValue('cover-transition', settings.music.coverTransitionMs);
+      setValue('idle-minimum', settings.music.idlePulseMinimum);
+      setValue('idle-period', settings.music.idlePulsePeriodMs);
+      byId('simulation').checked = settings.debug.simulation;
+      setValue('simulation-port', settings.debug.simulationPort);
+      setValue('fallback-leds', settings.debug.fallbackLedCount);
+      for (const [profile] of profileDefinitions) {
+        for (const [setting] of correctionFields) {
+          setValue(profileInputId(profile, setting), settings.profiles[profile][setting]);
+        }
+      }
+    }
+
+    function number(id) { return Number(byId(id).value); }
+
+    function collect() {
+      const profiles = {};
+      for (const [profile] of profileDefinitions) {
+        profiles[profile] = {};
+        for (const [setting] of correctionFields) {
+          profiles[profile][setting] = number(profileInputId(profile, setting));
+        }
+      }
+      return {
+        wled: { host: byId('wled-host').value, port: number('wled-port') },
+        output: {
+          fps: number('fps'),
+          ledBlackPoints: [number('black-r'), number('black-g'), number('black-b')],
+          ledMatchPoint: number('match-point'),
+        },
+        mode: byId('mode').value,
+        audioMode: byId('audio-mode').value,
+        profiles,
+        music: {
+          coverTransitionMs: number('cover-transition'),
+          idlePulseMinimum: number('idle-minimum'),
+          idlePulsePeriodMs: number('idle-period'),
+        },
+        monitor: byId('monitor').value,
+        debug: {
+          simulation: byId('simulation').checked,
+          simulationPort: number('simulation-port'),
+          noWled: byId('no-wled').checked,
+          fallbackLedCount: number('fallback-leds'),
+        },
+      };
+    }
+
+    async function loadSettings() {
+      const response = await fetch('/api/settings');
+      if (!response.ok) throw new Error('Could not load settings');
+      populate(await response.json());
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const shouldRestart = event.submitter?.value === 'restart';
+      document.querySelectorAll('.actions button').forEach((button) => { button.disabled = true; });
+      showStatus('Saving settings…');
+      try {
+        const response = await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(collect()),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Could not save settings');
+        populate(result.settings);
+        if (shouldRestart) {
+          const restartResponse = await fetch('/api/restart', { method: 'POST' });
+          const restartResult = await restartResponse.json();
+          if (!restartResponse.ok) throw new Error(restartResult.error || 'Could not restart');
+          showStatus('Settings saved. Screenshoteer is restarting; this page will reconnect shortly.', 'success');
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          showStatus(result.message, 'success');
+        }
+      } catch (error) {
+        showStatus(error.message, 'error');
+      } finally {
+        document.querySelectorAll('.actions button').forEach((button) => { button.disabled = false; });
+      }
+    });
+
+    byId('detect-monitors').addEventListener('click', async () => {
+      const button = byId('detect-monitors');
+      button.disabled = true;
+      byId('monitor-hint').textContent = 'Detecting Windows displays…';
+      try {
+        const response = await fetch('/api/monitors');
+        const monitors = await response.json();
+        if (!response.ok) throw new Error(monitors.error || 'Could not detect monitors');
+        const list = byId('monitor-list');
+        list.replaceChildren(...monitors.map((monitor) => {
+          const option = document.createElement('option');
+          option.value = monitor.name;
+          option.label = `${monitor.width}×${monitor.height} at ${monitor.x},${monitor.y}${monitor.primary ? ' · primary' : ''}`;
+          return option;
+        }));
+        byId('monitor-hint').textContent = `${monitors.length} monitor${monitors.length === 1 ? '' : 's'} detected. Leave blank to use primary.`;
+      } catch (error) {
+        byId('monitor-hint').textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    buildProfiles();
+    loadSettings().catch((error) => showStatus(error.message, 'error'));
+  </script>
+</body>
+</html>
