@@ -19,7 +19,7 @@ import {
   type OutputAdjustments,
 } from './output-processor.ts';
 import { SimulationServer } from './simulation-server.ts';
-import { SettingsServer } from './settings-server.ts';
+import { SettingsServer, type AppCommand } from './settings-server.ts';
 import { WLEDDdp } from './WLED_DDP.ts';
 import type { WebSettings } from './settings-store.ts';
 
@@ -29,7 +29,12 @@ if (process.platform !== 'win32') {
 
 const dashboard = new Dashboard(DEBUG.logs);
 const simulation = new SimulationServer(DEBUG.simulation, DEBUG.simulationPort);
-const settingsServer = new SettingsServer(8090, restart, applySavedSettings);
+const settingsServer = new SettingsServer(
+  8090,
+  restart,
+  applySavedSettings,
+  handleAppCommand,
+);
 const abortController = new AbortController();
 let modeController: AppModeController | undefined;
 let modeContext: ModeContext | undefined;
@@ -158,6 +163,22 @@ async function applySavedSettings(settings: WebSettings): Promise<void> {
   } else {
     await queueModeSwitch(settings.mode);
   }
+}
+
+async function handleAppCommand(command: AppCommand): Promise<void> {
+  if (command.command === 'mode') {
+    await queueModeSwitch(command.value);
+    return;
+  }
+  if (command.command === 'audiomode') {
+    musicAudioMode = command.value;
+    if (modeController instanceof MusicMode) {
+      modeController.setAudioMode(musicAudioMode);
+      applyOutputProfile(getOutputProfileName('music', musicAudioMode));
+    }
+    return;
+  }
+  setTimeout(() => shutdown(), 100).unref();
 }
 
 function shutdown(exitCode = 0): void {

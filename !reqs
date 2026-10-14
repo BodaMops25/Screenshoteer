@@ -13,12 +13,13 @@
 - realtime adjustable saturation, brightness, contrast, gamma, blur ✔
 - addjustable what screen to record ✔
 
-## Windows tray feature:
-- proccess must hide to windows tray
-- context menu:
-- - open webpage with settings
-- - change mode (music | screen capture)
-- - shutdown
+## Windows tray feature: ✔
+- proccess must hide to windows tray ✔
+- context menu: ✔
+- - open webpage with settings ✔
+- - change mode (music | screen capture) ✔
+- - change audio mode (current | band | spectrum) ✔
+- - shutdown ✔
 
 ## **Global features: ✔**
 - process must listen for wled connection and autoattach if lost ✔
@@ -28,5 +29,5 @@
 ## TODO:
 - send to wled full brightness on start ✔
 - own settings profile for each mode (and music mode) ✔
-- add webpage with settings 
+- add webpage with settings ✔
 - make release package

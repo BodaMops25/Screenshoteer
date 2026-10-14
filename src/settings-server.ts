@@ -10,10 +10,16 @@ import {
 
 const SETTINGS_PAGE = fileURLToPath(new URL('../settings/index.html', import.meta.url));
 
+export type AppCommand =
+  | { command: 'mode'; value: 'music' | 'screen-capture' }
+  | { command: 'audiomode'; value: 'current' | 'bands' | 'spectrum' }
+  | { command: 'shutdown' };
+
 export class SettingsServer {
   private readonly port: number;
   private readonly onRestart?: () => void;
   private readonly onSettingsSaved?: (settings: WebSettings) => void | Promise<void>;
+  private readonly onCommand?: (command: AppCommand) => void | Promise<void>;
   private readonly startupSettings = loadWebSettings();
   private server?: Server;
 
@@ -21,10 +27,12 @@ export class SettingsServer {
     port = 8090,
     onRestart?: () => void,
     onSettingsSaved?: (settings: WebSettings) => void | Promise<void>,
+    onCommand?: (command: AppCommand) => void | Promise<void>,
   ) {
     this.port = port;
     this.onRestart = onRestart;
     this.onSettingsSaved = onSettingsSaved;
+    this.onCommand = onCommand;
   }
 
   start(): Promise<void> {
@@ -87,6 +95,16 @@ export class SettingsServer {
         setTimeout(() => this.onRestart?.(), 150).unref();
         return;
       }
+      if (request.method === 'POST' && url.pathname === '/api/command') {
+        if (!this.onCommand) {
+          this.json(response, 503, { error: 'Commands are not available' });
+          return;
+        }
+        const command = this.parseCommand(await this.readJsonBody(request));
+        await this.onCommand(command);
+        this.json(response, 200, { ok: true });
+        return;
+      }
       if (request.method === 'GET' && (
         url.pathname === '/'
         || url.pathname === '/settings'
@@ -130,6 +148,23 @@ export class SettingsServer {
       });
       request.on('error', reject);
     });
+  }
+
+  private parseCommand(value: unknown): AppCommand {
+    if (value === null || typeof value !== 'object') throw new Error('Invalid command');
+    const input = value as Record<string, unknown>;
+    if (input.command === 'shutdown') return { command: 'shutdown' };
+    if (input.command === 'mode' && (
+      input.value === 'music' || input.value === 'screen-capture'
+    )) {
+      return { command: 'mode', value: input.value };
+    }
+    if (input.command === 'audiomode' && (
+      input.value === 'current' || input.value === 'bands' || input.value === 'spectrum'
+    )) {
+      return { command: 'audiomode', value: input.value };
+    }
+    throw new Error('Unknown command');
   }
 
   private json(response: ServerResponse, status: number, value: unknown): void {
