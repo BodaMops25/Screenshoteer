@@ -60,6 +60,24 @@
     .status.visible { display: block; }
     .status.success { color: var(--accent); border-color: rgba(83, 227, 176, .35); }
     .status.error { color: var(--danger); border-color: rgba(255, 123, 134, .35); }
+    .restart-toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 20;
+      display: none;
+      width: min(370px, calc(100% - 40px));
+      padding: 15px 17px;
+      border: 1px solid rgba(255, 190, 92, .45);
+      border-radius: 13px;
+      color: #ffd898;
+      background: rgba(39, 27, 11, .96);
+      box-shadow: 0 16px 45px rgba(0, 0, 0, .4);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .restart-toast.visible { display: block; }
+    .restart-toast strong { display: block; margin-bottom: 3px; color: #ffe7bd; }
     .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
     .card {
       grid-column: span 6;
@@ -95,7 +113,23 @@
     .black-points label:nth-child(1) { color: #ff8b93; }
     .black-points label:nth-child(2) { color: #72e5a6; }
     .black-points label:nth-child(3) { color: #84aaff; }
-    .monitor-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .monitor-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .monitor-button {
+      display: grid;
+      gap: 3px;
+      min-width: 150px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      color: var(--text);
+      background: #0c111a;
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+    }
+    .monitor-button span { color: var(--muted); font-size: 11px; }
+    .monitor-button.selected { border-color: var(--accent); background: var(--accent-dark); }
+    .no-monitors { margin: 0; color: var(--muted); font-size: 13px; }
     .secondary {
       border: 1px solid var(--line);
       border-radius: 10px;
@@ -181,12 +215,11 @@
 
       <section class="card">
         <h2>Screen capture</h2>
-        <p>Use an exact Windows name such as <code>\\.\DISPLAY2</code>, or leave blank for primary.</p>
+        <p>Select the Windows display used by FFmpeg screen capture.</p>
         <div class="field">
-          <label for="monitor">Monitor</label>
-          <div class="monitor-row"><input id="monitor" list="monitor-list" autocomplete="off"><button id="detect-monitors" class="secondary" type="button">Detect</button></div>
-          <datalist id="monitor-list"></datalist>
-          <span id="monitor-hint" class="hint">Monitor positions are resolved when capture starts.</span>
+          <span class="label">Monitor</span>
+          <input id="monitor" type="hidden">
+          <div id="monitor-list" class="monitor-list" aria-live="polite"><p class="no-monitors">Loading monitors...</p></div>
         </div>
       </section>
 
@@ -216,8 +249,12 @@
         <div id="profiles" class="profiles"></div>
       </section>
     </form>
-    <footer>Settings are stored locally in <code>settings.json</code>. Restart Screenshoteer after saving.</footer>
+    <footer>Settings are stored locally in <code>settings.json</code>. Mode, audio, music timing, and color profiles apply on save; use restart for connection and capture settings.</footer>
   </main>
+  <aside id="restart-toast" class="restart-toast" role="status">
+    <strong>App restart required</strong>
+    Save and restart to apply the changed connection, capture, LED, or debug settings.
+  </aside>
 
   <script>
     const profileDefinitions = [
@@ -236,6 +273,8 @@
     const byId = (id) => document.getElementById(id);
     const status = byId('status');
     const form = byId('settings-form');
+    const restartToast = byId('restart-toast');
+    let runtimeSettings;
 
     function profileInputId(profile, setting) {
       return `profile-${profile}-${setting}`;
@@ -266,6 +305,14 @@
 
     function setValue(id, value) { byId(id).value = value; }
 
+    function updateSelectedMonitor() {
+      const selected = byId('monitor').value;
+      document.querySelectorAll('.monitor-button').forEach((button) => {
+        button.classList.toggle('selected', button.dataset.monitor === selected);
+        button.setAttribute('aria-pressed', String(button.dataset.monitor === selected));
+      });
+    }
+
     function populate(settings) {
       setValue('wled-host', settings.wled.host);
       setValue('wled-port', settings.wled.port);
@@ -278,6 +325,7 @@
       setValue('black-g', settings.output.ledBlackPoints[1]);
       setValue('black-b', settings.output.ledBlackPoints[2]);
       setValue('monitor', settings.monitor);
+      updateSelectedMonitor();
       setValue('cover-transition', settings.music.coverTransitionMs);
       setValue('idle-minimum', settings.music.idlePulseMinimum);
       setValue('idle-period', settings.music.idlePulsePeriodMs);
@@ -326,10 +374,61 @@
       };
     }
 
+    function restartFingerprint(settings) {
+      return JSON.stringify({
+        wled: settings.wled,
+        output: settings.output,
+        monitor: settings.monitor,
+        debug: settings.debug,
+      });
+    }
+
+    function updateRestartWarning() {
+      if (!runtimeSettings) return;
+      restartToast.classList.toggle(
+        'visible',
+        restartFingerprint(collect()) !== restartFingerprint(runtimeSettings),
+      );
+    }
+
     async function loadSettings() {
       const response = await fetch('/api/settings');
       if (!response.ok) throw new Error('Could not load settings');
       populate(await response.json());
+    }
+
+    async function loadRuntimeSettings() {
+      const response = await fetch('/api/runtime-settings');
+      if (!response.ok) throw new Error('Could not load running settings');
+      runtimeSettings = await response.json();
+      updateRestartWarning();
+    }
+
+    async function loadMonitors() {
+      const list = byId('monitor-list');
+      try {
+        const response = await fetch('/api/monitors');
+        const monitors = await response.json();
+        if (!response.ok || !Array.isArray(monitors) || monitors.length === 0) {
+          throw new Error('No monitors detected');
+        }
+        list.replaceChildren(...monitors.map((monitor) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'monitor-button';
+          button.dataset.monitor = monitor.name;
+          button.innerHTML = `<strong>${monitor.name}</strong><span>${monitor.width} x ${monitor.height} at ${monitor.x}, ${monitor.y}${monitor.primary ? ' · primary' : ''}</span>`;
+          button.addEventListener('click', () => {
+            byId('monitor').value = monitor.name;
+            updateSelectedMonitor();
+            updateRestartWarning();
+          });
+          return button;
+        }));
+        updateSelectedMonitor();
+      } catch {
+        list.innerHTML = '<p class="no-monitors">No monitors detected</p>';
+      }
     }
 
     form.addEventListener('submit', async (event) => {
@@ -346,6 +445,7 @@
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Could not save settings');
         populate(result.settings);
+        updateRestartWarning();
         if (shouldRestart) {
           const restartResponse = await fetch('/api/restart', { method: 'POST' });
           const restartResult = await restartResponse.json();
@@ -362,31 +462,16 @@
       }
     });
 
-    byId('detect-monitors').addEventListener('click', async () => {
-      const button = byId('detect-monitors');
-      button.disabled = true;
-      byId('monitor-hint').textContent = 'Detecting Windows displays…';
-      try {
-        const response = await fetch('/api/monitors');
-        const monitors = await response.json();
-        if (!response.ok) throw new Error(monitors.error || 'Could not detect monitors');
-        const list = byId('monitor-list');
-        list.replaceChildren(...monitors.map((monitor) => {
-          const option = document.createElement('option');
-          option.value = monitor.name;
-          option.label = `${monitor.width}×${monitor.height} at ${monitor.x},${monitor.y}${monitor.primary ? ' · primary' : ''}`;
-          return option;
-        }));
-        byId('monitor-hint').textContent = `${monitors.length} monitor${monitors.length === 1 ? '' : 's'} detected. Leave blank to use primary.`;
-      } catch (error) {
-        byId('monitor-hint').textContent = error.message;
-      } finally {
-        button.disabled = false;
-      }
-    });
+    form.addEventListener('input', updateRestartWarning);
+    form.addEventListener('change', updateRestartWarning);
 
     buildProfiles();
-    loadSettings().catch((error) => showStatus(error.message, 'error'));
+    Promise.all([loadSettings(), loadRuntimeSettings()])
+      .then(() => {
+        updateRestartWarning();
+        return loadMonitors();
+      })
+      .catch((error) => showStatus(error.message, 'error'));
   </script>
 </body>
 </html>

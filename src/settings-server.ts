@@ -2,18 +2,29 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { ScreenCapture } from './screen-capture.ts';
-import { loadWebSettings, saveWebSettings } from './settings-store.ts';
+import {
+  loadWebSettings,
+  saveWebSettings,
+  type WebSettings,
+} from './settings-store.ts';
 
 const SETTINGS_PAGE = fileURLToPath(new URL('../settings/index.html', import.meta.url));
 
 export class SettingsServer {
   private readonly port: number;
   private readonly onRestart?: () => void;
+  private readonly onSettingsSaved?: (settings: WebSettings) => void | Promise<void>;
+  private readonly startupSettings = loadWebSettings();
   private server?: Server;
 
-  constructor(port = 8090, onRestart?: () => void) {
+  constructor(
+    port = 8090,
+    onRestart?: () => void,
+    onSettingsSaved?: (settings: WebSettings) => void | Promise<void>,
+  ) {
     this.port = port;
     this.onRestart = onRestart;
+    this.onSettingsSaved = onSettingsSaved;
   }
 
   start(): Promise<void> {
@@ -48,13 +59,18 @@ export class SettingsServer {
         this.json(response, 200, loadWebSettings());
         return;
       }
+      if (request.method === 'GET' && url.pathname === '/api/runtime-settings') {
+        this.json(response, 200, this.startupSettings);
+        return;
+      }
       if (request.method === 'PUT' && url.pathname === '/api/settings') {
         const body = await this.readJsonBody(request);
         const settings = await saveWebSettings(body);
+        await this.onSettingsSaved?.(settings);
         this.json(response, 200, {
           settings,
           restartRequired: true,
-          message: 'Settings saved. Restart Screenshoteer to apply them.',
+          message: 'Settings saved. Mode, audio mode, music timing, and color profiles were applied immediately. Restart is needed for connection, capture, LED calibration, and debug changes.',
         });
         return;
       }

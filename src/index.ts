@@ -21,6 +21,7 @@ import {
 import { SimulationServer } from './simulation-server.ts';
 import { SettingsServer } from './settings-server.ts';
 import { WLEDDdp } from './WLED_DDP.ts';
+import type { WebSettings } from './settings-store.ts';
 
 if (process.platform !== 'win32') {
   throw new Error('Screenshoteer currently supports Windows only');
@@ -28,7 +29,7 @@ if (process.platform !== 'win32') {
 
 const dashboard = new Dashboard(DEBUG.logs);
 const simulation = new SimulationServer(DEBUG.simulation, DEBUG.simulationPort);
-const settingsServer = new SettingsServer(8090, restart);
+const settingsServer = new SettingsServer(8090, restart, applySavedSettings);
 const abortController = new AbortController();
 let modeController: AppModeController | undefined;
 let modeContext: ModeContext | undefined;
@@ -135,10 +136,28 @@ function applyOutputProfile(name: OutputProfileName): void {
   }
 }
 
-function queueModeSwitch(mode: AppMode): void {
+function queueModeSwitch(mode: AppMode): Promise<void> {
   modeSwitch = modeSwitch
     .then(() => switchMode(mode))
     .catch((error) => console.error(`Could not switch to ${mode} mode:`, error));
+  return modeSwitch;
+}
+
+async function applySavedSettings(settings: WebSettings): Promise<void> {
+  for (const name of Object.keys(outputProfiles) as OutputProfileName[]) {
+    Object.assign(outputProfiles[name], settings.profiles[name]);
+  }
+  Object.assign(MUSIC, settings.music);
+  musicAudioMode = settings.audioMode;
+
+  if (modeController instanceof MusicMode) {
+    modeController.setAudioMode(musicAudioMode);
+  }
+  if (settings.mode === currentMode) {
+    applyOutputProfile(getOutputProfileName(settings.mode, musicAudioMode));
+  } else {
+    await queueModeSwitch(settings.mode);
+  }
 }
 
 function shutdown(exitCode = 0): void {
@@ -174,7 +193,7 @@ process.stdin.on('data', (command) => {
     }
     const modeMatch = /^mode\s+([01])$/.exec(input);
     if (modeMatch) {
-      queueModeSwitch(modeMatch[1] === '1' ? 'music' : 'screen-capture');
+      void queueModeSwitch(modeMatch[1] === '1' ? 'music' : 'screen-capture');
       continue;
     }
     const audioModeMatch = /^audiomode\s+([012])$/.exec(input);
