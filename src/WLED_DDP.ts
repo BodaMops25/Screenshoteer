@@ -49,7 +49,7 @@ export class WLEDDdp {
 
   async connect(): Promise<void> {
     await this.client.init();
-    if (!this.client.state.on) await this.client.turnOn();
+    await this.setFullBrightness();
     this.setConnected(true);
   }
 
@@ -119,6 +119,24 @@ export class WLEDDdp {
     if (this.connected === connected) return;
     this.connected = connected;
     this.options.onStatusChange?.(connected);
+  }
+
+  private async setFullBrightness(): Promise<void> {
+    const response = await fetch(`http://${this.options.host}/json/state`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        on: true,
+        bri: 255,
+      }),
+      signal: AbortSignal.timeout(this.options.healthCheckTimeoutMs),
+    });
+
+    if (!response.ok) {
+      throw new Error(`WLED brightness request returned ${response.status}`);
+    }
   }
 
   private createPacket(data: Buffer, offset: number): Buffer {
