@@ -42,6 +42,12 @@ export class OutputProcessor {
     return normalized;
   }
 
+  setAll(adjustments: OutputAdjustments): void {
+    for (const [name, value] of Object.entries(adjustments)) {
+      this.set(name as OutputAdjustmentName, value);
+    }
+  }
+
   get(): Readonly<OutputAdjustments> {
     return { ...this.adjustments };
   }

@@ -3,15 +3,21 @@ import {
   MODE,
   MUSIC,
   OUTPUT,
+  OUTPUT_PROFILES,
   WLED,
   type AppMode,
   type MusicAudioMode,
+  type OutputProfileName,
 } from './config.ts';
 import { Dashboard } from './dashboard.ts';
 import { MusicMode } from './modes/music-mode.ts';
 import { ScreenCaptureMode } from './modes/screen-capture-mode.ts';
 import type { AppModeController, ModeContext } from './modes/types.ts';
-import { OutputProcessor, type OutputAdjustmentName } from './output-processor.ts';
+import {
+  OutputProcessor,
+  type OutputAdjustmentName,
+  type OutputAdjustments,
+} from './output-processor.ts';
 import { SimulationServer } from './simulation-server.ts';
 import { WLEDDdp } from './WLED_DDP.ts';
 
@@ -28,13 +34,14 @@ let currentMode: AppMode | undefined;
 let musicAudioMode: MusicAudioMode = MUSIC.audioMode;
 let modeSwitch = Promise.resolve();
 let shuttingDown = false;
-const outputProcessor = new OutputProcessor({
-  brightness: OUTPUT.brightness,
-  contrast: OUTPUT.contrast,
-  saturation: OUTPUT.saturation,
-  gamma: OUTPUT.gamma,
-  blur: OUTPUT.blur,
-}, OUTPUT);
+let activeOutputProfile: OutputProfileName = 'screen-capture';
+const outputProfiles: Record<OutputProfileName, OutputAdjustments> = {
+  'screen-capture': { ...OUTPUT_PROFILES['screen-capture'] },
+  'music-current': { ...OUTPUT_PROFILES['music-current'] },
+  'music-bands': { ...OUTPUT_PROFILES['music-bands'] },
+  'music-spectrum': { ...OUTPUT_PROFILES['music-spectrum'] },
+};
+const outputProcessor = new OutputProcessor(outputProfiles[activeOutputProfile], OUTPUT);
 
 const wled = new WLEDDdp({
   ...WLED,
@@ -94,6 +101,7 @@ async function switchMode(mode: AppMode): Promise<void> {
   modeController?.stop();
   modeController = undefined;
   currentMode = undefined;
+  applyOutputProfile(getOutputProfileName(mode, musicAudioMode));
   const nextController = mode === 'music'
     ? new MusicMode(modeContext, musicAudioMode)
     : new ScreenCaptureMode(modeContext);
@@ -106,6 +114,22 @@ async function switchMode(mode: AppMode): Promise<void> {
   modeController = nextController;
   currentMode = mode;
   dashboard.set('Mode', mode);
+}
+
+function getOutputProfileName(
+  mode: AppMode,
+  audioMode: MusicAudioMode,
+): OutputProfileName {
+  return mode === 'screen-capture' ? mode : `music-${audioMode}`;
+}
+
+function applyOutputProfile(name: OutputProfileName): void {
+  activeOutputProfile = name;
+  outputProcessor.setAll(outputProfiles[name]);
+  dashboard.set('Output profile', name);
+  for (const [setting, value] of Object.entries(outputProcessor.get())) {
+    dashboard.set(setting[0].toUpperCase() + setting.slice(1), value);
+  }
 }
 
 function queueModeSwitch(mode: AppMode): void {
@@ -137,7 +161,7 @@ process.stdin.on('data', (command) => {
       return;
     }
     if (input === 'settings') {
-      console.log(outputProcessor.get());
+      console.log({ profile: activeOutputProfile, ...outputProcessor.get() });
       continue;
     }
     const modeMatch = /^mode\s+([01])$/.exec(input);
@@ -151,6 +175,7 @@ process.stdin.on('data', (command) => {
       musicAudioMode = audioModes[Number(audioModeMatch[1])];
       if (modeController instanceof MusicMode) {
         modeController.setAudioMode(musicAudioMode);
+        applyOutputProfile(getOutputProfileName('music', musicAudioMode));
       } else {
         dashboard.set('Audio mode', musicAudioMode);
       }
@@ -168,6 +193,7 @@ process.stdin.on('data', (command) => {
       };
       const name = names[match[1]];
       const value = outputProcessor.set(name, Number(match[2]));
+      outputProfiles[activeOutputProfile][name] = value;
       dashboard.set(name[0].toUpperCase() + name.slice(1), value);
       continue;
     }

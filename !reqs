@@ -24,3 +24,9 @@
 - process must listen for wled connection and autoattach if lost ✔
 - debug websocket html page simulation to see what leds data will return to wled ✔
 - some console statistics ✔
+
+## TODO:
+- send to wled full brightness on start ✔
+- own settings profile for each mode (and music mode) ✔
+- add webpage with settings 
+- make release package

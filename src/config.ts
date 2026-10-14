@@ -1,6 +1,11 @@
 export type AppMode = 'music' | 'screen-capture';
 export type MusicAudioMode = 'bands' | 'spectrum' | 'current';
 export type MusicColorMode = 'main' | 'palette';
+export type OutputProfileName =
+  | 'screen-capture'
+  | 'music-current'
+  | 'music-bands'
+  | 'music-spectrum';
 
 export const MODE: AppMode = 'screen-capture';
 
@@ -14,19 +19,40 @@ export const WLED = {
 
 export const OUTPUT = {
   fps: 60,
-  /* brightness: 0,
-  contrast: 1,
-  saturation: 3,
-  gamma: 1,
-  blur: 0, */
-  brightness: 0,
-  contrast: 1,
-  saturation: 1,
-  gamma: 1,
-  blur: 0,
   ledBlackPoints: [24, 24, 24] as const,
   ledLowRangeGammas: [1.5, 1.5, 1.5] as const,
   ledMatchPoint: 128,
+} as const;
+
+export const OUTPUT_PROFILES = {
+  'screen-capture': {
+    brightness: 0,
+    contrast: 1,
+    saturation: 1,
+    gamma: 1,
+    blur: 0,
+  },
+  'music-current': {
+    brightness: 0,
+    contrast: 1,
+    saturation: 1,
+    gamma: 1,
+    blur: 0,
+  },
+  'music-bands': {
+    brightness: 0,
+    contrast: 1,
+    saturation: 1,
+    gamma: 1,
+    blur: 0,
+  },
+  'music-spectrum': {
+    brightness: 0,
+    contrast: 1,
+    saturation: 1,
+    gamma: 1,
+    blur: 0,
+  },
 } as const;
 
 export const MUSIC = {
