@@ -13,7 +13,7 @@
     "color-correction": "node src/color-correction-server.ts"
   },
   "author": "BodaMops25",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@coooookies/windows-smtc-monitor": "^1.0.12",
     "colorthief": "^3.5.0",

@@ -1,0 +1,59 @@
+{
+  "wled": {
+    "host": "192.168.1.18",
+    "port": 4048
+  },
+  "output": {
+    "fps": 60,
+    "ledBlackPoints": [
+      24,
+      24,
+      24
+    ],
+    "ledMatchPoint": 128
+  },
+  "mode": "music",
+  "audioMode": "current",
+  "profiles": {
+    "screen-capture": {
+      "brightness": 0,
+      "contrast": 1,
+      "saturation": 1,
+      "gamma": 1,
+      "blur": 5
+    },
+    "music-current": {
+      "brightness": 0,
+      "contrast": 1,
+      "saturation": 1,
+      "gamma": 1,
+      "blur": 5
+    },
+    "music-bands": {
+      "brightness": 0,
+      "contrast": 1,
+      "saturation": 1,
+      "gamma": 1,
+      "blur": 5
+    },
+    "music-spectrum": {
+      "brightness": 0,
+      "contrast": 1,
+      "saturation": 1,
+      "gamma": 1,
+      "blur": 0
+    }
+  },
+  "music": {
+    "coverTransitionMs": 1200,
+    "idlePulseMinimum": 0.5,
+    "idlePulsePeriodMs": 3500
+  },
+  "monitor": "\\\\.\\DISPLAY2",
+  "debug": {
+    "simulation": true,
+    "simulationPort": 8080,
+    "noWled": true,
+    "fallbackLedCount": 100
+  }
+}
