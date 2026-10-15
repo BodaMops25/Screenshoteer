@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { isSea } from 'node:sea';
 
 export type AppMode = 'music' | 'screen-capture';
 export type MusicAudioMode = 'bands' | 'spectrum' | 'current';
@@ -42,7 +44,12 @@ export interface WebSettings {
   };
 }
 
-export const SETTINGS_FILE = fileURLToPath(new URL('../settings.json', import.meta.url));
+const moduleDirectory = typeof __dirname === 'string'
+  ? __dirname
+  : dirname(fileURLToPath(import.meta.url));
+export const SETTINGS_FILE = isSea()
+  ? resolve(dirname(process.execPath), 'settings.json')
+  : resolve(moduleDirectory, '..', 'settings.json');
 
 const DEFAULT_PROFILE: ColorProfileSettings = {
   brightness: 0,

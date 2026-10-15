@@ -1,6 +1,8 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { getAsset, isSea } from 'node:sea';
 import { ScreenCapture } from './screen-capture.ts';
 import {
   loadWebSettings,
@@ -8,7 +10,10 @@ import {
   type WebSettings,
 } from './settings-store.ts';
 
-const SETTINGS_PAGE = fileURLToPath(new URL('../settings/index.html', import.meta.url));
+const moduleDirectory = typeof __dirname === 'string'
+  ? __dirname
+  : dirname(fileURLToPath(import.meta.url));
+const SETTINGS_PAGE = resolve(moduleDirectory, '..', 'settings', 'index.html');
 
 export type AppCommand =
   | { command: 'mode'; value: 'music' | 'screen-capture' }
@@ -110,7 +115,9 @@ export class SettingsServer {
         || url.pathname === '/settings'
         || url.pathname === '/index.html'
       )) {
-        const page = await readFile(SETTINGS_PAGE);
+        const page = isSea()
+          ? Buffer.from(getAsset('settings/index.html'))
+          : await readFile(SETTINGS_PAGE);
         response.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8',
           'Cache-Control': 'no-store',

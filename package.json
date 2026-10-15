@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node src/launcher.ts",
     "tray": "dotnet run --project tray-app/Screenshoteer.Tray.csproj",
+    "bundle": "node scripts/build-bundle.mjs",
+    "build:exe": "npm run bundle && node scripts/build-sea.mjs",
     "color-correction": "node src/color-correction-server.ts"
   },
   "author": "BodaMops25",
@@ -22,6 +24,8 @@
   },
   "devDependencies": {
     "@types/node": "^25.0.6",
-    "@types/ws": "^8.18.2"
+    "@types/ws": "^8.18.2",
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6"
   }
 }
