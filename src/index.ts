@@ -9,6 +9,8 @@ import {
   type MusicAudioMode,
   type OutputProfileName,
 } from './config.ts';
+import { spawn } from 'node:child_process';
+import { isSea } from 'node:sea';
 import { Dashboard } from './dashboard.ts';
 import { MusicMode } from './modes/music-mode.ts';
 import { ScreenCaptureMode } from './modes/screen-capture-mode.ts';
@@ -194,6 +196,22 @@ function shutdown(exitCode = 0): void {
 }
 
 function restart(): void {
+  if (isSea()) {
+    const child = spawn(
+      process.execPath,
+      [`--restart-after-pid=${process.pid}`],
+      {
+        cwd: process.cwd(),
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+      },
+    );
+    child.unref();
+    shutdown();
+    return;
+  }
+
   shutdown(75);
 }
 
