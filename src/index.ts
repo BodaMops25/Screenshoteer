@@ -13,6 +13,7 @@ import { spawn } from 'node:child_process';
 import { isSea } from 'node:sea';
 import { Dashboard } from './dashboard.ts';
 import { DEV } from './dev.ts';
+import { reportError } from './error-reporter.ts';
 import { MusicMode } from './modes/music-mode.ts';
 import { ScreenCaptureMode } from './modes/screen-capture-mode.ts';
 import type { AppModeController, ModeContext } from './modes/types.ts';
@@ -29,6 +30,15 @@ import type { WebSettings } from './settings-store.ts';
 if (process.platform !== 'win32') {
   throw new Error('Screenshoteer currently supports Windows only');
 }
+
+process.on('uncaughtException', (error) => {
+  reportError('Uncaught application error', error);
+  process.exit(1);
+});
+process.on('unhandledRejection', (error) => {
+  reportError('Unhandled asynchronous error', error);
+  process.exit(1);
+});
 
 const dashboard = new Dashboard(DEV && DEBUG.logs);
 const simulation = new SimulationServer(DEBUG.simulation, DEBUG.simulationPort);
@@ -152,7 +162,7 @@ function queueModeSwitch(mode: AppMode): Promise<void> {
   modeSwitch = modeSwitch
     .then(() => switchMode(mode))
     .catch((error) => {
-      if (DEV) console.error(`Could not switch to ${mode} mode:`, error);
+      reportError(`Could not switch to ${mode} mode`, error);
     });
   return modeSwitch;
 }
@@ -275,6 +285,6 @@ process.stdin.on('data', (command) => {
 });
 
 start().catch((error) => {
-  if (DEV) console.error(error);
+  reportError('Application startup failed', error);
   shutdown(1);
 });

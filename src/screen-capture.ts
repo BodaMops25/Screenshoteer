@@ -5,6 +5,7 @@ import {
 } from 'node:child_process';
 import { promisify } from 'node:util';
 import { DEV } from './dev.ts';
+import { reportError } from './error-reporter.ts';
 
 const execFileAsync = promisify(execFile);
 
@@ -117,11 +118,13 @@ export class ScreenCapture {
 
     this.process.stderr.on('data', () => {});
     this.process.once('error', (error) => {
-      if (DEV) console.error('Failed to start FFmpeg:', error);
+      reportError('Failed to start FFmpeg', error);
     });
     this.process.once('close', (code) => {
       this.process = undefined;
-      if (DEV && code !== 0 && code !== null) console.error(`FFmpeg exited with code ${code}`);
+      if (code !== 0 && code !== null) {
+        reportError('FFmpeg screen capture stopped', new Error(`FFmpeg exited with code ${code}`));
+      }
     });
     return monitor;
   }

@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path';
 import { getAsset, isSea } from 'node:sea';
 import { ScreenCapture } from './screen-capture.ts';
 import { DEV } from './dev.ts';
+import { reportError } from './error-reporter.ts';
 import {
   loadWebSettings,
   saveWebSettings,
@@ -54,7 +55,7 @@ export class SettingsServer {
       server.listen(this.port, '127.0.0.1', () => {
         server.off('error', onError);
         server.on('error', (error) => {
-          if (DEV) console.error('Settings server error:', error);
+          reportError('Settings server error', error);
         });
         if (DEV) console.log(`Settings: http://127.0.0.1:${this.port}`);
         resolve();

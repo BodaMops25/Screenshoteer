@@ -1,4 +1,5 @@
 import { prepareSeaRuntime } from './sea-runtime.ts';
+import { reportError } from './error-reporter.ts';
 
 prepareSeaRuntime();
 
@@ -10,7 +11,12 @@ if (process.argv.includes('--sea-smoke-test')) {
         ? Number.parseInt(restartArgument.slice('--restart-after-pid='.length), 10)
         : undefined;
 
-    void waitForProcessExit(previousPid).then(() => import('./index.ts'));
+    void waitForProcessExit(previousPid)
+        .then(() => import('./index.ts'))
+        .catch((error) => {
+            reportError('Application startup failed', error);
+            process.exitCode = 1;
+        });
 }
 
 async function waitForProcessExit(pid: number | undefined): Promise<void> {

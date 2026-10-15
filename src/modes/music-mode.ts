@@ -3,6 +3,7 @@ import loopbackCapture from 'loopback-capture';
 import { AudioMeter, type AudioBands } from '../audio-meter.ts';
 import { MUSIC, type MusicAudioMode } from '../config.ts';
 import { DEV } from '../dev.ts';
+import { reportError } from '../error-reporter.ts';
 import { MediaMonitor } from '../media-monitor.ts';
 import {
   AudioNormalizer,
@@ -113,7 +114,7 @@ export class MusicMode implements AppModeController {
       this.transitionStartedAt = performance.now();
       if (DEV) this.context.dashboard.set('Cover colors', colors.length);
     } catch (error) {
-      if (DEV) console.error('Could not process media cover:', error);
+      reportError('Could not process media cover', error);
     }
   }
 

@@ -3,7 +3,7 @@ import {
   SMTCMonitor,
   type PlaybackInfo,
 } from '@coooookies/windows-smtc-monitor';
-import { DEV } from './dev.ts';
+import { reportError } from './error-reporter.ts';
 
 export interface MediaMonitorOptions {
   onCoverChange?: (coverBinary: Buffer) => void | Promise<void>;
@@ -60,7 +60,7 @@ export class MediaMonitor {
       this.coverHash = hash;
       await this.onCoverChange(thumbnailBinary);
     } catch (error) {
-      if (DEV) console.error(error);
+      reportError('Windows media monitoring failed', error);
     }
   }
 
