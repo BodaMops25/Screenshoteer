@@ -31,18 +31,32 @@ await build({
   },
   define: {
     'import.meta.url': '__screenshoteerImportMetaUrl',
+    __DEV__: 'false',
   },
-  plugins: [{
-    name: 'use-smtc-commonjs-entry',
-    setup(context) {
-      context.onResolve(
-        { filter: /^@coooookies\/windows-smtc-monitor$/ },
-        () => ({
-          path: resolve(root, 'node_modules/@coooookies/windows-smtc-monitor/index.js'),
-        }),
-      );
+  minifySyntax: true,
+  drop: ['console'],
+  plugins: [
+    {
+      name: 'use-production-dashboard',
+      setup(context) {
+        context.onResolve(
+          { filter: /dashboard\.ts$/ },
+          () => ({ path: resolve(root, 'src/dashboard.prod.ts') }),
+        );
+      },
     },
-  }],
+    {
+      name: 'use-smtc-commonjs-entry',
+      setup(context) {
+        context.onResolve(
+          { filter: /^@coooookies\/windows-smtc-monitor$/ },
+          () => ({
+            path: resolve(root, 'node_modules/@coooookies/windows-smtc-monitor/index.js'),
+          }),
+        );
+      },
+    },
+  ],
 });
 
 const seaConfig = {

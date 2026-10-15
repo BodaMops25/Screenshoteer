@@ -3,6 +3,7 @@ import { writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { isSea } from 'node:sea';
+import { DEV } from './dev.ts';
 
 export type AppMode = 'music' | 'screen-capture';
 export type MusicAudioMode = 'bands' | 'spectrum' | 'current';
@@ -93,7 +94,7 @@ export function loadWebSettings(): WebSettings {
     return sanitizeWebSettings(JSON.parse(readFileSync(SETTINGS_FILE, 'utf8')));
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
-    if (code !== 'ENOENT') console.error('Could not load settings.json:', error);
+    if (DEV && code !== 'ENOENT') console.error('Could not load settings.json:', error);
     return structuredClone(DEFAULT_WEB_SETTINGS);
   }
 }

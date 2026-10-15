@@ -1,4 +1,5 @@
 import { WebSocket, WebSocketServer } from 'ws';
+import { DEV } from './dev.ts';
 
 export class SimulationServer {
   private server?: WebSocketServer;
@@ -14,7 +15,7 @@ export class SimulationServer {
     if (!this.enabled) return;
     this.server = new WebSocketServer({ port: this.port });
     this.server.on('listening', () => {
-      console.log(`Simulation WebSocket listening on port ${this.port}`);
+      if (DEV) console.log(`Simulation WebSocket listening on port ${this.port}`);
     });
   }
 

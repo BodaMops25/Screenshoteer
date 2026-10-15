@@ -3,6 +3,7 @@ import {
   SMTCMonitor,
   type PlaybackInfo,
 } from '@coooookies/windows-smtc-monitor';
+import { DEV } from './dev.ts';
 
 export interface MediaMonitorOptions {
   onCoverChange?: (coverBinary: Buffer) => void | Promise<void>;
@@ -59,7 +60,7 @@ export class MediaMonitor {
       this.coverHash = hash;
       await this.onCoverChange(thumbnailBinary);
     } catch (error) {
-      console.error(error);
+      if (DEV) console.error(error);
     }
   }
 

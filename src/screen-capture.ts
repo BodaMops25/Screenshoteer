@@ -4,6 +4,7 @@ import {
   type ChildProcessWithoutNullStreams,
 } from 'node:child_process';
 import { promisify } from 'node:util';
+import { DEV } from './dev.ts';
 
 const execFileAsync = promisify(execFile);
 
@@ -71,10 +72,12 @@ export class ScreenCapture {
     if (monitor) return monitor;
 
     const available = monitors.map((candidate) => candidate.name).join(', ');
-    console.error(
-      `Monitor "${requestedName}" not found. Using primary monitor "${primary.name}". `
-        + `Available monitors: ${available}`,
-    );
+    if (DEV) {
+      console.error(
+        `Monitor "${requestedName}" not found. Using primary monitor "${primary.name}". `
+          + `Available monitors: ${available}`,
+      );
+    }
     return primary;
   }
 
@@ -114,11 +117,11 @@ export class ScreenCapture {
 
     this.process.stderr.on('data', () => {});
     this.process.once('error', (error) => {
-      console.error('Failed to start FFmpeg:', error);
+      if (DEV) console.error('Failed to start FFmpeg:', error);
     });
     this.process.once('close', (code) => {
       this.process = undefined;
-      if (code !== 0 && code !== null) console.error(`FFmpeg exited with code ${code}`);
+      if (DEV && code !== 0 && code !== null) console.error(`FFmpeg exited with code ${code}`);
     });
     return monitor;
   }

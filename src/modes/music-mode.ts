@@ -2,6 +2,7 @@ import { getColor, getPalette, type Color } from 'colorthief';
 import loopbackCapture from 'loopback-capture';
 import { AudioMeter, type AudioBands } from '../audio-meter.ts';
 import { MUSIC, type MusicAudioMode } from '../config.ts';
+import { DEV } from '../dev.ts';
 import { MediaMonitor } from '../media-monitor.ts';
 import {
   AudioNormalizer,
@@ -67,13 +68,13 @@ export class MusicMode implements AppModeController {
     this.media.start();
     this.capture.startSystemAudio((chunk: Buffer) => this.meter.push(chunk));
     this.frameTimer = setInterval(() => this.renderFrame(), 1000 / this.context.frameRate);
-    this.context.dashboard.set('Audio mode', this.audioMode);
+    if (DEV) this.context.dashboard.set('Audio mode', this.audioMode);
   }
 
   setAudioMode(mode: MusicAudioMode): void {
     this.audioMode = mode;
     this.meter.setFrequencyAnalysisEnabled(mode !== 'current');
-    this.context.dashboard.set('Audio mode', mode);
+    if (DEV) this.context.dashboard.set('Audio mode', mode);
   }
 
   stop(): void {
@@ -110,9 +111,9 @@ export class MusicMode implements AppModeController {
       this.transitionFrom = this.getTransitionedLeds();
       this.targetLeds = ledsPaletteSegments(colors, this.context.ledCount);
       this.transitionStartedAt = performance.now();
-      this.context.dashboard.set('Cover colors', colors.length);
+      if (DEV) this.context.dashboard.set('Cover colors', colors.length);
     } catch (error) {
-      console.error('Could not process media cover:', error);
+      if (DEV) console.error('Could not process media cover:', error);
     }
   }
 
@@ -157,9 +158,11 @@ export class MusicMode implements AppModeController {
       });
     }
 
-    this.context.dashboard.set('Media playing', this.isPlaying);
-    this.context.dashboard.set('Raw audio', this.rawAudioLevel);
-    this.context.dashboard.set('Audio level', this.normalizedAudioLevel);
+    if (DEV) {
+      this.context.dashboard.set('Media playing', this.isPlaying);
+      this.context.dashboard.set('Raw audio', this.rawAudioLevel);
+      this.context.dashboard.set('Audio level', this.normalizedAudioLevel);
+    }
     this.context.sendFrame(ledsArrayToBuffer(output));
   }
 }

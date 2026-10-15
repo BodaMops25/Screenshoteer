@@ -12,6 +12,7 @@ import {
 import { spawn } from 'node:child_process';
 import { isSea } from 'node:sea';
 import { Dashboard } from './dashboard.ts';
+import { DEV } from './dev.ts';
 import { MusicMode } from './modes/music-mode.ts';
 import { ScreenCaptureMode } from './modes/screen-capture-mode.ts';
 import type { AppModeController, ModeContext } from './modes/types.ts';
@@ -29,7 +30,7 @@ if (process.platform !== 'win32') {
   throw new Error('Screenshoteer currently supports Windows only');
 }
 
-const dashboard = new Dashboard(DEBUG.logs);
+const dashboard = new Dashboard(DEV && DEBUG.logs);
 const simulation = new SimulationServer(DEBUG.simulation, DEBUG.simulationPort);
 const settingsServer = new SettingsServer(
   8090,
@@ -55,12 +56,14 @@ const outputProcessor = new OutputProcessor(outputProfiles[activeOutputProfile],
 
 const wled = new WLEDDdp({
   ...WLED,
-  onStatusChange: (connected) => dashboard.set('WLED', connected ? 'connected' : 'offline'),
+  onStatusChange: (connected) => {
+    if (DEV) dashboard.set('WLED', connected ? 'connected' : 'offline');
+  },
 });
 
 async function start(): Promise<void> {
   await settingsServer.start();
-  dashboard.set('WLED', DEBUG.noWled ? 'disabled' : 'connecting');
+  if (DEV) dashboard.set('WLED', DEBUG.noWled ? 'disabled' : 'connecting');
 
   let ledCount: number = DEBUG.fallbackLedCount;
   let ledOffset = 0;
@@ -74,22 +77,24 @@ async function start(): Promise<void> {
     wled.startMonitoring();
   }
 
-  dashboard.set('LEDs', ledCount);
+  if (DEV) dashboard.set('LEDs', ledCount);
   simulation.start();
 
   let lastFrameAt: number | undefined;
   const sendFrame = (source: Buffer): void => {
     const processingStartedAt = performance.now();
     const frame = outputProcessor.process(source);
-    dashboard.sample('Process ms', performance.now() - processingStartedAt);
+    if (DEV) dashboard.sample('Process ms', performance.now() - processingStartedAt);
 
     const now = performance.now();
     if (lastFrameAt !== undefined) {
-      const averageMs = dashboard.sample('Frame ms', now - lastFrameAt);
-      dashboard.set('FPS', averageMs > 0 ? 1_000 / averageMs : 0);
+      if (DEV) {
+        const averageMs = dashboard.sample('Frame ms', now - lastFrameAt);
+        dashboard.set('FPS', averageMs > 0 ? 1_000 / averageMs : 0);
+      }
     }
     lastFrameAt = now;
-    dashboard.set('Time', new Date().toLocaleTimeString());
+    if (DEV) dashboard.set('Time', new Date().toLocaleTimeString());
 
     simulation.broadcast(frame);
     if (!DEBUG.noWled) wled.sendRaw(frame, ledOffset * 3);
@@ -124,7 +129,7 @@ async function switchMode(mode: AppMode): Promise<void> {
   }
   modeController = nextController;
   currentMode = mode;
-  dashboard.set('Mode', mode);
+  if (DEV) dashboard.set('Mode', mode);
 }
 
 function getOutputProfileName(
@@ -137,16 +142,18 @@ function getOutputProfileName(
 function applyOutputProfile(name: OutputProfileName): void {
   activeOutputProfile = name;
   outputProcessor.setAll(outputProfiles[name]);
-  dashboard.set('Output profile', name);
+  if (DEV) dashboard.set('Output profile', name);
   for (const [setting, value] of Object.entries(outputProcessor.get())) {
-    dashboard.set(setting[0].toUpperCase() + setting.slice(1), value);
+    if (DEV) dashboard.set(setting[0].toUpperCase() + setting.slice(1), value);
   }
 }
 
 function queueModeSwitch(mode: AppMode): Promise<void> {
   modeSwitch = modeSwitch
     .then(() => switchMode(mode))
-    .catch((error) => console.error(`Could not switch to ${mode} mode:`, error));
+    .catch((error) => {
+      if (DEV) console.error(`Could not switch to ${mode} mode:`, error);
+    });
   return modeSwitch;
 }
 
@@ -191,7 +198,7 @@ function shutdown(exitCode = 0): void {
   simulation.stop();
   settingsServer.stop();
   wled.stop();
-  dashboard.stop();
+  if (DEV) dashboard.stop();
   process.exit(exitCode);
 }
 
@@ -227,7 +234,7 @@ process.stdin.on('data', (command) => {
       return;
     }
     if (input === 'settings') {
-      console.log({ profile: activeOutputProfile, ...outputProcessor.get() });
+      if (DEV) console.log({ profile: activeOutputProfile, ...outputProcessor.get() });
       continue;
     }
     const modeMatch = /^mode\s+([01])$/.exec(input);
@@ -243,7 +250,7 @@ process.stdin.on('data', (command) => {
         modeController.setAudioMode(musicAudioMode);
         applyOutputProfile(getOutputProfileName('music', musicAudioMode));
       } else {
-        dashboard.set('Audio mode', musicAudioMode);
+        if (DEV) dashboard.set('Audio mode', musicAudioMode);
       }
       continue;
     }
@@ -260,14 +267,14 @@ process.stdin.on('data', (command) => {
       const name = names[match[1]];
       const value = outputProcessor.set(name, Number(match[2]));
       outputProfiles[activeOutputProfile][name] = value;
-      dashboard.set(name[0].toUpperCase() + name.slice(1), value);
+      if (DEV) dashboard.set(name[0].toUpperCase() + name.slice(1), value);
       continue;
     }
-    console.log('Commands: mode <0 screen|1 music>, audiomode <0 current|1 bands|2 spectrum>, b <brightness>, c <contrast>, s <saturation>, g <gamma>, blr <blur>, settings, quit');
+    if (DEV) console.log('Commands: mode <0 screen|1 music>, audiomode <0 current|1 bands|2 spectrum>, b <brightness>, c <contrast>, s <saturation>, g <gamma>, blr <blur>, settings, quit');
   }
 });
 
 start().catch((error) => {
-  console.error(error);
+  if (DEV) console.error(error);
   shutdown(1);
 });

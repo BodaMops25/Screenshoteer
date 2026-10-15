@@ -1,4 +1,5 @@
 import { SCREEN_CAPTURE } from '../config.ts';
+import { DEV } from '../dev.ts';
 import { ScreenCapture } from '../screen-capture.ts';
 import type { AppModeController, ModeContext } from './types.ts';
 
@@ -18,7 +19,7 @@ export class ScreenCaptureMode implements AppModeController {
       onFrame: (frame) => this.context.sendFrame(frame),
     });
     const monitor = await this.capture.start();
-    this.context.dashboard.set('Capture', monitor.name);
+    if (DEV) this.context.dashboard.set('Capture', monitor.name);
   }
 
   stop(): void {

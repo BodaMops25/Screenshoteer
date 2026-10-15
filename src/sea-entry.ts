@@ -3,7 +3,7 @@ import { prepareSeaRuntime } from './sea-runtime.ts';
 prepareSeaRuntime();
 
 if (process.argv.includes('--sea-smoke-test')) {
-    console.log('Screenshoteer SEA startup OK');
+    process.stdout.write('Screenshoteer SEA startup OK\n');
 } else {
     const restartArgument = process.argv.find((argument) => argument.startsWith('--restart-after-pid='));
     const previousPid = restartArgument
