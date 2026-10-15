@@ -66,7 +66,7 @@ const seaConfig = {
   useSnapshot: false,
   useCodeCache: false,
   assets: {
-    'settings/index.html': 'settings/index.html',
+    'html/settings.html': 'html/settings.html',
     'node_modules/loopback-capture/package.json': 'node_modules/loopback-capture/package.json',
     'node_modules/loopback-capture/prebuilds/win32-x64/loopback_capture_addon.node': 'node_modules/loopback-capture/prebuilds/win32-x64/loopback_capture_addon.node',
     'node_modules/@coooookies/windows-smtc-monitor-win32-x64-msvc/package.json': 'node_modules/@coooookies/windows-smtc-monitor-win32-x64-msvc/package.json',

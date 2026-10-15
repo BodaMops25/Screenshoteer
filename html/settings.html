@@ -158,6 +158,9 @@
       .profiles, .fields { grid-template-columns: 1fr; }
       .field.full { grid-column: auto; }
     }
+    .development-only { display: none !important; }
+    body.development .development-only.card { display: block !important; }
+    body.development .development-only.check { display: flex !important; }
   </style>
 </head>
 <body>
@@ -183,7 +186,7 @@
         <div class="fields">
           <div class="field"><label for="wled-host">Host</label><input id="wled-host" autocomplete="off" required></div>
           <div class="field"><label for="wled-port">DDP port</label><input id="wled-port" type="number" min="1" max="65535" required></div>
-          <label class="check field full"><input id="no-wled" type="checkbox"> Disable physical WLED output</label>
+          <label class="check field full development-only" data-development-only><input id="no-wled" type="checkbox"> Disable physical WLED output</label>
         </div>
       </section>
 
@@ -214,6 +217,16 @@
       </section>
 
       <section class="card">
+        <h2>Music behavior</h2>
+        <p>Timing for cover changes and the idle breathing animation.</p>
+        <div class="fields">
+          <div class="field"><label for="cover-transition">Cover transition (ms)</label><input id="cover-transition" type="number" min="0" max="60000" required></div>
+          <div class="field"><label for="idle-minimum">Idle pulse minimum</label><input id="idle-minimum" type="number" min="0" max="1" step="0.01" required></div>
+          <div class="field full"><label for="idle-period">Idle pulse period (ms)</label><input id="idle-period" type="number" min="100" max="60000" required></div>
+        </div>
+      </section>
+      
+      <section class="card wide">
         <h2>Screen capture</h2>
         <p>Select the Windows display used by FFmpeg screen capture.</p>
         <div class="field">
@@ -223,17 +236,7 @@
         </div>
       </section>
 
-      <section class="card">
-        <h2>Music behavior</h2>
-        <p>Timing for cover changes and the idle breathing animation.</p>
-        <div class="fields">
-          <div class="field"><label for="cover-transition">Cover transition (ms)</label><input id="cover-transition" type="number" min="0" max="60000" required></div>
-          <div class="field"><label for="idle-minimum">Idle pulse minimum</label><input id="idle-minimum" type="number" min="0" max="1" step="0.01" required></div>
-          <div class="field full"><label for="idle-period">Idle pulse period (ms)</label><input id="idle-period" type="number" min="100" max="60000" required></div>
-        </div>
-      </section>
-
-      <section class="card">
+      <section class="card development-only" data-development-only>
         <h2>Debug & simulation</h2>
         <p>Browser simulation output and fallback behavior without WLED.</p>
         <div class="fields">
@@ -397,6 +400,13 @@
       populate(await response.json());
     }
 
+    async function loadEnvironment() {
+      const response = await fetch('/api/environment');
+      if (!response.ok) throw new Error('Could not load application environment');
+      const environment = await response.json();
+      document.body.classList.toggle('development', environment.development === true);
+    }
+
     async function loadRuntimeSettings() {
       const response = await fetch('/api/runtime-settings');
       if (!response.ok) throw new Error('Could not load running settings');
@@ -466,7 +476,7 @@
     form.addEventListener('change', updateRestartWarning);
 
     buildProfiles();
-    Promise.all([loadSettings(), loadRuntimeSettings()])
+    Promise.all([loadEnvironment(), loadSettings(), loadRuntimeSettings()])
       .then(() => {
         updateRestartWarning();
         return loadMonitors();

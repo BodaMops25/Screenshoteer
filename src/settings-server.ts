@@ -14,7 +14,7 @@ import {
 const moduleDirectory = typeof __dirname === 'string'
   ? __dirname
   : dirname(fileURLToPath(import.meta.url));
-const SETTINGS_PAGE = resolve(moduleDirectory, '..', 'settings', 'index.html');
+const SETTINGS_PAGE = resolve(moduleDirectory, '..', 'html', 'settings.html');
 
 export type AppCommand =
   | { command: 'mode'; value: 'music' | 'screen-capture' }
@@ -75,13 +75,17 @@ export class SettingsServer {
         this.json(response, 200, loadWebSettings());
         return;
       }
+      if (request.method === 'GET' && url.pathname === '/api/environment') {
+        this.json(response, 200, { development: DEV });
+        return;
+      }
       if (request.method === 'GET' && url.pathname === '/api/runtime-settings') {
         this.json(response, 200, this.startupSettings);
         return;
       }
       if (request.method === 'PUT' && url.pathname === '/api/settings') {
         const body = await this.readJsonBody(request);
-        const settings = await saveWebSettings(body);
+        const settings = await saveWebSettings(body, DEV);
         await this.onSettingsSaved?.(settings);
         this.json(response, 200, {
           settings,
@@ -119,7 +123,7 @@ export class SettingsServer {
         || url.pathname === '/index.html'
       )) {
         const page = isSea()
-          ? Buffer.from(getAsset('settings/index.html'))
+          ? Buffer.from(getAsset('html/settings.html'))
           : await readFile(SETTINGS_PAGE);
         response.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8',

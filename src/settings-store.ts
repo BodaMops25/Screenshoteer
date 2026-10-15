@@ -99,8 +99,12 @@ export function loadWebSettings(): WebSettings {
   }
 }
 
-export async function saveWebSettings(value: unknown): Promise<WebSettings> {
+export async function saveWebSettings(
+  value: unknown,
+  allowDebugChanges = true,
+): Promise<WebSettings> {
   const settings = sanitizeWebSettings(value);
+  if (!allowDebugChanges) settings.debug = loadWebSettings().debug;
   await writeFile(SETTINGS_FILE, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
   return settings;
 }
