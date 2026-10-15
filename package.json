@@ -9,6 +9,7 @@
     "tray": "dotnet run --project tray-app/Screenshoteer.Tray.csproj",
     "bundle": "node scripts/build-bundle.mjs",
     "build:exe": "npm run bundle && node scripts/build-sea.mjs",
+    "build:tray": "npm run build:exe && dotnet publish tray-app/Screenshoteer.Tray.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o dist",
     "color-correction": "node src/color-correction-server.ts"
   },
   "author": "BodaMops25",

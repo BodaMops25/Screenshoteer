@@ -13,9 +13,4 @@
     <ApplicationIcon>assets\screenshoteer.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="assets\screenshoteer.ico">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
 </Project>

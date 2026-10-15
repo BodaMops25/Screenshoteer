@@ -22,11 +22,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     public TrayApplicationContext()
     {
-        trayImage = new Icon(Path.Combine(
-            AppContext.BaseDirectory,
-            "assets",
-            "screenshoteer.ico"
-        ));
+        trayImage = (Icon)(Icon.ExtractAssociatedIcon(Application.ExecutablePath)
+            ?? SystemIcons.Application).Clone();
         musicModeItem = MenuItem("Music", async () => await SetModeAsync("music"));
         screenModeItem = MenuItem("Screen capture", async () => await SetModeAsync("screen-capture"));
         currentAudioItem = MenuItem("Current", async () => await SetAudioModeAsync("current"));
@@ -89,16 +86,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         try
         {
             if (await IsNodeAppAvailableAsync()) return;
-            var projectRoot = FindProjectRoot();
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "node",
-                WorkingDirectory = projectRoot,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden,
-            };
-            startInfo.ArgumentList.Add(Path.Combine(projectRoot, "src", "launcher.ts"));
+            var startInfo = CreateNodeStartInfo();
             nodeProcess = Process.Start(startInfo)
                 ?? throw new InvalidOperationException("Node did not start");
 
@@ -118,6 +106,34 @@ internal sealed class TrayApplicationContext : ApplicationContext
         {
             nodeStartLock.Release();
         }
+    }
+
+    private static ProcessStartInfo CreateNodeStartInfo()
+    {
+        var packagedApp = Path.Combine(AppContext.BaseDirectory, "Screenshoteer.exe");
+        if (File.Exists(packagedApp))
+        {
+            return new ProcessStartInfo
+            {
+                FileName = packagedApp,
+                WorkingDirectory = AppContext.BaseDirectory,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+            };
+        }
+
+        var projectRoot = FindProjectRoot();
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "node",
+            WorkingDirectory = projectRoot,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden,
+        };
+        startInfo.ArgumentList.Add(Path.Combine(projectRoot, "src", "launcher.ts"));
+        return startInfo;
     }
 
     private async Task<bool> IsNodeAppAvailableAsync()
