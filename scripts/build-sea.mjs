@@ -4,12 +4,12 @@ import { resolve } from 'node:path';
 
 const root = process.cwd();
 const executable = resolve(root, 'dist/Screenshoteer.exe');
-const blob = resolve(root, 'dist/sea-prep.blob');
+const blob = resolve(root, 'dist/temp/sea-prep.blob');
 const postject = resolve(root, 'node_modules/postject/dist/cli.js');
 
 run(process.execPath, [
   '--experimental-sea-config',
-  resolve(root, 'dist/sea-config.json'),
+  resolve(root, 'dist/temp/sea-config.json'),
 ]);
 await copyFile(process.execPath, executable);
 run(process.execPath, [

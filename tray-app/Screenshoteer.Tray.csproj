@@ -5,7 +5,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>Screenshoteer.Tray</AssemblyName>
+    <AssemblyName>ScreenshoteerTray</AssemblyName>
     <RootNamespace>Screenshoteer.Tray</RootNamespace>
   </PropertyGroup>
 

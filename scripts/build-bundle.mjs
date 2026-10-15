@@ -1,15 +1,16 @@
-import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { build } from 'esbuild';
 
 const root = process.cwd();
 const dist = resolve(root, 'dist');
+const temp = resolve(dist, 'temp');
 await rm(dist, { recursive: true, force: true });
-await mkdir(resolve(dist, 'settings'), { recursive: true });
+await mkdir(temp, { recursive: true });
 
 await build({
   entryPoints: [resolve(root, 'src/sea-entry.ts')],
-  outfile: resolve(dist, 'screenshoteer.cjs'),
+  outfile: resolve(temp, 'screenshoteer.cjs'),
   bundle: true,
   platform: 'node',
   format: 'cjs',
@@ -44,14 +45,9 @@ await build({
   }],
 });
 
-await copyFile(
-  resolve(root, 'settings/index.html'),
-  resolve(dist, 'settings/index.html'),
-);
-
 const seaConfig = {
-  main: 'dist/screenshoteer.cjs',
-  output: 'dist/sea-prep.blob',
+  main: 'dist/temp/screenshoteer.cjs',
+  output: 'dist/temp/sea-prep.blob',
   disableExperimentalSEAWarning: true,
   useSnapshot: false,
   useCodeCache: false,
@@ -69,9 +65,9 @@ const seaConfig = {
   },
 };
 await writeFile(
-  resolve(dist, 'sea-config.json'),
+  resolve(temp, 'sea-config.json'),
   `${JSON.stringify(seaConfig, null, 2)}\n`,
   'utf8',
 );
 
-console.log('Bundled TypeScript to dist/screenshoteer.cjs');
+console.log('Bundled TypeScript to dist/temp/screenshoteer.cjs');
